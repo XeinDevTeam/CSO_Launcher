@@ -67,6 +67,10 @@ DWORD g_dwMpSize;
 #define PACKET_REPORT_PTR_FUNC_REF_SIG "\xE8\x00\x00\x00\x00\x8B\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x8B\x0D\x00\x00\x00\x00\x8B\x01\xFF\x10"
 #define PACKET_REPORT_PTR_FUNC_REF_MASK "x????xx????x????xx????xxxx"
 
+#define PACKET_CRYPT_SIG "\x55\x8B\xEC\x6A\xFF\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\xF0\x53\x56\x57\x50\x8D\x45\xF4\x64\xA3\x00\x00\x00\x00\x8B\x45\x08\x89\x85\x00\x00\x00\x00\x8B\x45\x0C\xC7\x85\x00\x00\x00\x00\x00\x00\x00\x00\xC7\x85\x00\x00\x00\x00\x00\x00\x00\x00\x89\x85\x00\x00\x00\x00\x6A\x01\x8D\x85\x00\x00\x00\x00\xC7\x45\x00\x00\x00\x00\x00\x50\x8D\x8D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x0F\xB6\x9D\x00\x00\x00\x00"
+#define PACKET_CRYPT_MASK "xxxxxx????xx????xxx????x????xxxxxxxxxxxxxx????xxxxx????xxxxx????????xx????????xx????xxxx????xx?????xxx????x????xxx????"
+
+
 char g_pServerIP[16];
 char g_pServerPort[6];
 char g_pLogin[64];
@@ -142,9 +146,19 @@ int(__thiscall* g_pfnPacket_Alarm_Parse)(void* _this, void* packetBuffer, int pa
 void* g_pPacket_Item_Parse;
 int(__thiscall* g_pfnPacket_Item_Parse)(void* _this, void* packetBuffer, int packetSize);
 
+void* g_pPacket_Crypt_Parse;
+int(__thiscall* g_pfnPacket_Crypt_Parse)(void* _this, void* packetBuffer, int packetSize);
+
 void* g_pPacket_Host;
 typedef int(__thiscall* tPacket_Host_Parse)(void* _this, void* packetBuffer, int packetSize);
 tPacket_Host_Parse g_pfnPacket_Host_Parse;
+
+const char*(__thiscall* g_pfnGetCryptoProtocolName)(void* _this);
+
+void* (__thiscall* g_pfnSocketConstructor)(int _this, int a2, int a3, char a4);
+
+typedef void*(*tEVP_CIPHER_CTX_new)();
+tEVP_CIPHER_CTX_new g_pfnEVP_CIPHER_CTX_new;
 
 int NGClient_1(void*, void*& object, int, int)
 {
@@ -448,14 +462,15 @@ int __fastcall Packet_Metadata_Parse(Packet* _this, int a2, void* packetBuffer, 
 	return g_pfnPacket_Metadata_Parse(_this, packetBuffer, packetSize);
 }
 
+int counter = 0;
 void DumpPacket(const char* packetName, void* packetBuffer, int packetSize)
 {
-	char subType = *(char*)packetBuffer;
+	//char subType = *(char*)packetBuffer;
 
 	CreateDirectory(packetName, NULL);
 
 	char name[MAX_PATH];
-	sprintf_s(name, "%s/%s_%d.bin", packetName, packetName, subType);
+	sprintf_s(name, "%s/%s_%d.bin", packetName, packetName, counter++);
 
 	FILE* file = fopen(name, "wb");
 	if (file)
@@ -497,6 +512,13 @@ int __fastcall Packet_Item_Parse(Packet* _this, int a2, void* packetBuffer, int 
 	return g_pfnPacket_Item_Parse(_this, packetBuffer, packetSize);
 }
 
+int __fastcall Packet_Crypt_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
+{
+	DumpPacket("Crypt", packetBuffer, packetSize);
+
+	return g_pfnPacket_Crypt_Parse(_this, packetBuffer, packetSize);
+}
+
 int __fastcall Packet_Host_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
 {
 	char subType = *(char*)packetBuffer;
@@ -520,8 +542,8 @@ void __fastcall LoginDlg_OnCommand(void* _this, int r, const char* command)
 
 		//void* pLoginTextEntry = g_pfnPanel_FindChildByName(_this, "1");
 		//void* pPasswordTextEntry = g_pfnPanel_FindChildByName(_this, "1");
-		(*(void(__thiscall**)(DWORD*, char*, signed int))(*v3[109] + 620))(v3[109], login, 256); // textentry->GetText()
-		(*(void(__thiscall**)(DWORD*, char*, signed int))(*v3[110] + 620))(v3[110], password, 256);
+		(*(void(__thiscall**)(DWORD*, char*, signed int))(*v3[109] + 624))(v3[109], login, 256); // textentry->GetText() // before 23.12.23 *v3[109] + 620
+		(*(void(__thiscall**)(DWORD*, char*, signed int))(*v3[110] + 624))(v3[110], password, 256);
 
 		wchar_t buf[256];
 		swprintf(buf, L"/login %S %S", login, password);
@@ -534,8 +556,8 @@ void __fastcall LoginDlg_OnCommand(void* _this, int r, const char* command)
 		char login[256];
 		char password[256];
 
-		(*(void(__thiscall**)(DWORD*, char*, signed int))(*v3[109] + 620))(v3[109], login, 256); // textentry->GetText()
-		(*(void(__thiscall**)(DWORD*, char*, signed int))(*v3[110] + 620))(v3[110], password, 256);
+		(*(void(__thiscall**)(DWORD*, char*, signed int))(*v3[109] + 624))(v3[109], login, 256); // textentry->GetText()
+		(*(void(__thiscall**)(DWORD*, char*, signed int))(*v3[110] + 624))(v3[110], password, 256);
 
 		wchar_t buf[256];
 		swprintf(buf, L"/register %S %S", login, password);
@@ -613,9 +635,9 @@ int __fastcall GameUI_RunFrame(void* _this)
 				//(*(void(__stdcall**)(void*, int, int))(*(DWORD*)pRegisterBtn + 4))(pRegisterBtn, 50, 141); // button->SetPos()
 				(*(void(__thiscall**)(void*, bool))(*(DWORD*)pFindIDBtn + 160))(pFindIDBtn, false); // button->SetVisible()
 				(*(void(__thiscall**)(void*, bool))(*(DWORD*)pFindPWBtn + 160))(pFindPWBtn, false); // button->SetVisible()
-				(*(void(__thiscall**)(void*, const char*))(*(DWORD*)pRegisterBtn + 604))(pRegisterBtn, "Register"); // button->SetText()
+				(*(void(__thiscall**)(void*, const char*))(*(DWORD*)pRegisterBtn + 608))(pRegisterBtn, "Register"); // button->SetText() // before 23.12.23 pRegisterBtn + 604
 				//(*(void(__thiscall**)(void*, const char*))(*(DWORD*)pImagePanel1 + 600))(pImagePanel1, "resource/login.tga"); // imagepanel->SetImage()
-				(*(void(__thiscall**)(void*))(*(DWORD*)pLoginDlg + 832))(pLoginDlg); // loginDlg->DoModal()
+				(*(void(__thiscall**)(void*))(*(DWORD*)pLoginDlg + 836))(pLoginDlg); // loginDlg->DoModal() // before 23.12.23 pLoginDlg + 832
 
 				// i lost fucking g_pfnShowLoginDlg reference...
 				/*if (g_pfnShowLoginDlg)
@@ -659,6 +681,26 @@ void CSO_Bot_Add()
 		}
 	}
 	g_pBotManager->Bot_Add(arg1);
+}
+
+const char* __fastcall GetCryptoProtocolName(void* _this)
+{
+	if (g_bUseSSL)
+	{
+		return g_pfnGetCryptoProtocolName(_this);
+	}
+
+	return "None";
+}
+
+void* __fastcall SocketConstructor(int _this, int reg, int a2, int a3, char a4)
+{
+	*(DWORD*)(_this + 72) = (DWORD)g_pfnEVP_CIPHER_CTX_new();
+	*(DWORD*)(_this + 76) = (DWORD)g_pfnEVP_CIPHER_CTX_new();
+	*(DWORD*)(_this + 80) = (DWORD)g_pfnEVP_CIPHER_CTX_new();
+	*(DWORD*)(_this + 84) = (DWORD)g_pfnEVP_CIPHER_CTX_new();
+
+	return g_pfnSocketConstructor(_this, a2, a3, a4);
 }
 
 void CreateDebugConsole()
@@ -812,7 +854,6 @@ void Hook(HMODULE hModule)
 	IATHook(g_hEngineModule, "nxgsm.dll", "WriteErrorLogA", NXGSM_WriteErrorLogA, dummy);
 	IATHook(g_hEngineModule, "nxgsm.dll", "FinalizeGameLogManager", NXGSM_Dummy, dummy);
 	IATHook(g_hEngineModule, "nxgsm.dll", "SetUserSN", NXGSM_Dummy, dummy);
-
 	if (g_bDumpUDP)
 	{
 		//InlineHook(GetProcAddress(GetModuleHandleA("WSOCK32.dll"), "recvfrom"), h_Recvfrom, (void*&)g_pfnRecvfrom);
@@ -913,11 +954,62 @@ void Hook(HMODULE hModule)
 		printf("0x%p\n", g_pPacket_Item_Parse);
 	}
 
-	// patch launcher name in hw.dll to fix annoying message box (length of launcher filename must be < original name)
-	DWORD strAddr = FindPattern("cstrike-online.exe", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize);
-	if (strAddr)
+	if (1/*g_bDumpCrypt*/)
 	{
-		WriteMemory((void*)strAddr, (BYTE*)"CSOLauncher.exe", strlen("CSOLauncher.exe") + 1);
+		g_pPacket_Crypt_Parse = (void*)FindPattern(PACKET_CRYPT_SIG, PACKET_CRYPT_MASK, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!g_pPacket_Crypt_Parse)
+			MessageBox(NULL, "g_pPacket_Crypt_Parse == NULL!!!", "Error", MB_OK);
+
+		InlineHook(g_pPacket_Crypt_Parse, Packet_Crypt_Parse, (void*&)g_pfnPacket_Crypt_Parse);
+
+		printf("0x%p\n", g_pPacket_Crypt_Parse);
+	}
+
+	if (!g_bUseOriginalServer)
+	{
+		// patch launcher name in hw.dll to fix annoying message box (length of launcher filename must be < original name)
+		DWORD strAddr = FindPattern("cstrike-online.exe", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize);
+		if (strAddr)
+		{
+			WriteMemory((void*)strAddr, (BYTE*)"CSOLauncher.exe", strlen("CSOLauncher.exe") + 1);
+		}
+	}
+
+	// hook GetCryptoProtocolName func to make Crypt work
+	DWORD dwCallAddr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("CRYPT_ERROR"));
+	if (dwCallAddr)
+	{
+		dwCallAddr -= 0x117;
+
+		InlineHookFromCallOpcode((void*)dwCallAddr, GetCryptoProtocolName, (void*&)g_pfnGetCryptoProtocolName, dummy);
+	}
+
+	// hook socket constructor to create ctx objects even if we don't use ssl
+	if (!g_bUseSSL)
+	{
+		dwCallAddr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("new socket()>>"));
+		if (dwCallAddr)
+		{
+			dwCallAddr += 0x62;
+
+			InlineHookFromCallOpcode((void*)dwCallAddr, SocketConstructor, (void*&)g_pfnSocketConstructor, dummy);
+
+			dwCallAddr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("SSL: Failed to load Client's Private Key"), 2);
+			if (dwCallAddr)
+			{
+				dwCallAddr -= 0x1F;
+
+				DWORD dwCreateCtxAddr = dwCallAddr + 1;
+				g_pfnEVP_CIPHER_CTX_new = (tEVP_CIPHER_CTX_new)(dwCreateCtxAddr + 4 + *(DWORD*)dwCreateCtxAddr);
+			}
+
+			// mega unreliable solution...
+			/*DWORD callInitSSLAddr = (DWORD)dummy + 0x142 + 1;
+			DWORD initSSLAddr = callInitSSLAddr + 4 + *(DWORD*)callInitSSLAddr;
+
+			DWORD createCtxCallAddr = initSSLAddr + 0x15E + 1;
+			g_pfnEVP_CIPHER_CTX_new = (tEVP_CIPHER_CTX_new)(createCtxCallAddr + 4 + *(DWORD*)createCtxCallAddr);*/
+		}
 	}
 
 	// create thread to wait for other modules

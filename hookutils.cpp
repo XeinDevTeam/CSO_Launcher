@@ -312,7 +312,7 @@ DWORD FindPattern(PCHAR pattern, PCHAR mask, DWORD start, DWORD end, DWORD offse
 	return 0;
 }
 
-DWORD FindPattern(PCHAR pattern, DWORD start, DWORD end, DWORD offset)
+DWORD FindPattern(PCHAR pattern, DWORD start, DWORD end, DWORD offset, DWORD refNumber)
 {
 	bool found = false;
 	size_t patternLength = strlen(pattern);
@@ -331,18 +331,22 @@ DWORD FindPattern(PCHAR pattern, DWORD start, DWORD end, DWORD offset)
 		}
 
 		if (found)
-			return i + offset;
+		{
+			refNumber--;
+			if (!refNumber)
+				return i + offset;
+		}
 	}
 
 	return 0;
 }
 
-DWORD FindPush(DWORD start, DWORD end, PCHAR Message)
+DWORD FindPush(DWORD start, DWORD end, PCHAR Message, DWORD refNumber)
 {
 	char bPushAddrPattern[] = { 0x68 , 0x00 , 0x00 , 0x00 , 0x00 , 0x00 };
 	DWORD Address = FindPattern(Message, start, end, 0);
 	*(PDWORD)&bPushAddrPattern[1] = Address;
-	Address = FindPattern(bPushAddrPattern, start, end, 0);
+	Address = FindPattern(bPushAddrPattern, start, end, 0, refNumber);
 	return Address;
 }
 

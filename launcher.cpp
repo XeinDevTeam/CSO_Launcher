@@ -6,6 +6,7 @@
 #include "IFileSystem.h"
 #include "sys.h"
 #include "hook.h"
+#include <stdio.h>
 
 IFileSystem* g_pFileSystem; 
 
@@ -26,6 +27,23 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 {
 	static char szNewCommandParams[2048];
 	HANDLE hObject = NULL;
+
+	VirtualAlloc(0, 0x400u, 0x2000u, 4u);
+
+	HANDLE ProcessHeaps[1025];
+	DWORD NumberOfHeaps = GetProcessHeaps(1024, ProcessHeaps);
+	DWORD HeapInformation = 1;
+	for (int i = 0; i < NumberOfHeaps; i++)
+	{
+		if (HeapSetInformation(ProcessHeaps[i], HeapCompatibilityInformation, &HeapInformation, 4u))
+		{
+			printf("The low-fragmentation heap has been enabled.\n");
+		}
+		else
+		{
+			printf("Failed to enable the low-fragmentation heap, %d.\n", GetLastError());
+		}
+	}
 
 	CommandLine()->CreateCmdLine(GetCommandLine());
 
@@ -97,8 +115,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		HINTERFACEMODULE hEngine;
 		bool bUseBlobDLL = false;
 
-		hEngine = Sys_LoadModule(pszEngineDLL);
 
+		hEngine = Sys_LoadModule(pszEngineDLL);
 		if (!hEngine)
 		{
 			static char msg[512];
@@ -106,6 +124,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 			MessageBox(NULL, msg, "Fatal Error", MB_ICONERROR);
 			ExitProcess(0);
 		}
+
 
 		CreateInterfaceFn engineCreateInterface = (CreateInterfaceFn)Sys_GetFactory(hEngine);
 		engineAPI = (IEngine*)engineCreateInterface(VENGINE_LAUNCHER_API_VERSION, NULL);
