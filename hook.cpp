@@ -208,7 +208,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
 	if (uMsg == 0x113 && wParam == 250)
 	{
-		// handle dropclient msg from anticheat?
+		// handle dropclient msg if the client detected abnormal things
 		printf("handle_dropclient\n");
 		return 0;
 	}
@@ -728,8 +728,8 @@ DWORD WINAPI HookThread(LPVOID lpThreadParameter)
 
 	g_dwGameUISize = GetModuleSize(GetModuleHandle("gameui.dll"));
 
-	//hWnd = FindWindow(NULL, "Counter-Strike Nexon: Studio");
-	//oWndProc = (WNDPROC)SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)WndProc);
+	hWnd = FindWindow(NULL, "Counter-Strike Nexon: Studio");
+	oWndProc = (WNDPROC)SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)WndProc);
 
 	g_pChattingManager = g_pEngine->GetChatManager();
 	if (!g_pChattingManager)
@@ -877,7 +877,11 @@ void Hook(HMODULE hModule)
 		{
 			DWORD pushStr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("resource/zombi/ZombieSkillTable_Dedi.csv"));
 			
-			if (pushStr && InlineHookFromCallOpcode((void*)(pushStr + 0xF), CreateStringTable, (void*&)g_pfnCreateStringTable, dummy))
+			// read instruction opcode to know we found valid address
+			int opcode = 0;
+			ReadMemory((void*)(pushStr + 0xF), (BYTE*)&opcode, 1);
+
+			if (opcode == 0xE8 && pushStr && InlineHookFromCallOpcode((void*)(pushStr + 0xF), CreateStringTable, (void*&)g_pfnCreateStringTable, dummy))
 			{
 				DWORD parseCsvCallAddr = (DWORD)dummy + 0x71 + 1;
 				g_pfnParseCSV = (tParseCSV)(parseCsvCallAddr + 4 + *(DWORD*)parseCsvCallAddr);
@@ -968,7 +972,7 @@ void Hook(HMODULE hModule)
 	if (!g_bUseOriginalServer)
 	{
 		// patch launcher name in hw.dll to fix annoying message box (length of launcher filename must be < original name)
-		DWORD strAddr = FindPattern("cstrike-online.exe", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize);
+		DWORD strAddr = FindPattern("cstrike-online.exe", strlen("cstrike-online.exe"), g_dwEngineBase, g_dwEngineBase + g_dwEngineSize);
 		if (strAddr)
 		{
 			WriteMemory((void*)strAddr, (BYTE*)"CSOLauncher.exe", strlen("CSOLauncher.exe") + 1);

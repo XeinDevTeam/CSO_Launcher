@@ -39,5 +39,5 @@ DWORD ReadDWORD(void *pAddress);
 DWORD WriteMemory(void *pAddress, BYTE *pData, DWORD dwDataSize);
 DWORD ReadMemory(void *pAddress, BYTE *pData, DWORD dwDataSize);
 DWORD FindPattern(PCHAR pattern, PCHAR mask, DWORD start, DWORD end, DWORD offset = 0);
-DWORD FindPattern(PCHAR pattern, DWORD start, DWORD end, DWORD offset = 0, DWORD refNumber = 1);
+DWORD FindPattern(PCHAR pattern, DWORD patternLength, DWORD start, DWORD end, DWORD offset = 0, DWORD refNumber = 1);
 DWORD FindPush(DWORD start, DWORD end, PCHAR Message, DWORD refNumber = 1);
