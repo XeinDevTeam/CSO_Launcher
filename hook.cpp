@@ -83,6 +83,7 @@ bool g_bDumpQuest = false;
 bool g_bDumpUMsg = false;
 bool g_bDumpAlarm = false;
 bool g_bDumpItem = false;
+bool g_bDumpCrypt = false;
 bool g_bDisableAuthUI = false;
 bool g_bDumpUDP = false;
 bool g_bUseSSL = false;
@@ -292,13 +293,17 @@ const char* GetCSVMetadataName(int metaDataID)
 	case 2:
 		return "ModeList.csv";
 	case 9:
-		return "GameMatchOption.csv";
+		return "MatchOption.csv";
 	case 17:
-		return "WeaponParts.csv";
+		return "weaponparts.csv";
 	case 18:
 		return "MileageShop.csv";
 	case 24:
 		return "GameModeList.csv";
+	case 25:
+		return "badwordadd.csv";
+	case 26:
+		return "badworddel.csv";
 	case 27:
 		return "progress_unlock.csv";
 	case 28:
@@ -323,12 +328,20 @@ const char* GetCSVMetadataName(int metaDataID)
 		return "scenariotx_dedi.json";
 	case 40:
 		return "shopitemlist_dedi.json";
+	case 41:
+		return "EpicPieceShop.csv";
 	case 42:
 		return "WeaponProp.json";
+	case 44:
+		return "SeasonBadgeShop.csv";
 	case 45:
 		return "ppsystem.json";
+	case 46:
+		return "classmastery.json";
 	case 48:
 		return "ZBCompetitive.json"; // required or game will crash
+	case 50:
+		return "ModeEvent.csv";
 	}
 	return NULL;
 }
@@ -749,20 +762,20 @@ DWORD WINAPI HookThread(LPVOID lpThreadParameter)
 	g_dwMpSize = GetModuleSize(GetModuleHandle("mp.dll"));
 
 	{
-		// NOP IsDedi() function to load allstar Skill/Status csv (crashing)
-		//DWORD pushStr = FindPush(g_dwMpBase, g_dwMpBase + g_dwMpSize, (PCHAR)("Failed to Open AllStar_Skill-Dedi Table"));
+		// NOP IsDedi() function to load allstar Skill/Status csv
+		DWORD pushStr = FindPush(g_dwMpBase, g_dwMpBase + g_dwMpSize, (PCHAR)("Failed to Open AllStar_Skill-Dedi Table"));
 		// call FF 15
 		// test 85
 		// jz 0F 84
 		// cmp 80 7D
 		// 90 90 90 90 90 90 90 90 90 90 90 90 90 90 80 7D
-		//DWORD patchAddr = pushStr - 0x1B;
-		//char patch[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
-		//WriteMemory((void*)patchAddr, (BYTE*)patch, 14);
+		DWORD patchAddr = pushStr - 0x1B;
+		char patch[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
+		WriteMemory((void*)patchAddr, (BYTE*)patch, 14);
 
-		//pushStr = FindPush(g_dwMpBase, g_dwMpBase + g_dwMpSize, (PCHAR)("Failed to Open AllStar_Status-Dedi Table"));
-		//patchAddr = pushStr - 0x1E; // or 0x1B?
-		//WriteMemory((void*)patchAddr, (BYTE*)patch, 14);
+		pushStr = FindPush(g_dwMpBase, g_dwMpBase + g_dwMpSize, (PCHAR)("Failed to Open AllStar_Status-Dedi Table"));
+		patchAddr = pushStr - 0x1E; // or 0x1B?
+		WriteMemory((void*)patchAddr, (BYTE*)patch, 14);
 	}
 
 	g_pEngine->pfnAddCommand("cso_bot_add", CSO_Bot_Add);
@@ -824,6 +837,7 @@ void Init(HMODULE hModule)
 	g_bDumpUMsg = CommandLine()->CheckParm("-dumpumsg");
 	g_bDumpAlarm = CommandLine()->CheckParm("-dumpalarm");
 	g_bDumpItem = CommandLine()->CheckParm("-dumpitem");
+	g_bDumpCrypt = CommandLine()->CheckParm("-dumpcrypt");
 	g_bDisableAuthUI = CommandLine()->CheckParm("-disableauthui");
 	g_bDumpUDP = CommandLine()->CheckParm("-dumpudp");
 	g_bUseSSL = CommandLine()->CheckParm("-usessl");
@@ -958,7 +972,7 @@ void Hook(HMODULE hModule)
 		printf("0x%p\n", g_pPacket_Item_Parse);
 	}
 
-	if (1/*g_bDumpCrypt*/)
+	if (g_bDumpCrypt)
 	{
 		g_pPacket_Crypt_Parse = (void*)FindPattern(PACKET_CRYPT_SIG, PACKET_CRYPT_MASK, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 		if (!g_pPacket_Crypt_Parse)
@@ -969,14 +983,11 @@ void Hook(HMODULE hModule)
 		printf("0x%p\n", g_pPacket_Crypt_Parse);
 	}
 
-	if (!g_bUseOriginalServer)
+	// patch launcher name in hw.dll to fix annoying message box (length of launcher filename must be < original name)
+	DWORD strAddr = FindPattern("cstrike-online.exe", strlen("cstrike-online.exe"), g_dwEngineBase, g_dwEngineBase + g_dwEngineSize);
+	if (strAddr)
 	{
-		// patch launcher name in hw.dll to fix annoying message box (length of launcher filename must be < original name)
-		DWORD strAddr = FindPattern("cstrike-online.exe", strlen("cstrike-online.exe"), g_dwEngineBase, g_dwEngineBase + g_dwEngineSize);
-		if (strAddr)
-		{
-			WriteMemory((void*)strAddr, (BYTE*)"CSOLauncher.exe", strlen("CSOLauncher.exe") + 1);
-		}
+		WriteMemory((void*)strAddr, (BYTE*)"CSOLauncher.exe", strlen("CSOLauncher.exe") + 1);
 	}
 
 	// hook GetCryptoProtocolName func to make Crypt work
@@ -989,7 +1000,7 @@ void Hook(HMODULE hModule)
 	}
 
 	// hook socket constructor to create ctx objects even if we don't use ssl
-	if (!g_bUseSSL)
+	if (!g_bUseOriginalServer && !g_bUseSSL)
 	{
 		dwCallAddr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("new socket()>>"));
 		if (dwCallAddr)
