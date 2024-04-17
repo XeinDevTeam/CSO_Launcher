@@ -990,40 +990,43 @@ void Hook(HMODULE hModule)
 		WriteMemory((void*)strAddr, (BYTE*)"CSOLauncher.exe", strlen("CSOLauncher.exe") + 1);
 	}
 
-	// hook GetCryptoProtocolName func to make Crypt work
-	DWORD dwCallAddr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("CRYPT_ERROR"));
-	if (dwCallAddr)
+	if (!g_bUseOriginalServer)
 	{
-		dwCallAddr -= 0x117;
-
-		InlineHookFromCallOpcode((void*)dwCallAddr, GetCryptoProtocolName, (void*&)g_pfnGetCryptoProtocolName, dummy);
-	}
-
-	// hook socket constructor to create ctx objects even if we don't use ssl
-	if (!g_bUseOriginalServer && !g_bUseSSL)
-	{
-		dwCallAddr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("new socket()>>"));
+		// hook GetCryptoProtocolName func to make Crypt work
+		DWORD dwCallAddr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("CRYPT_ERROR"));
 		if (dwCallAddr)
 		{
-			dwCallAddr += 0x62;
+			dwCallAddr -= 0x117;
 
-			InlineHookFromCallOpcode((void*)dwCallAddr, SocketConstructor, (void*&)g_pfnSocketConstructor, dummy);
+			InlineHookFromCallOpcode((void*)dwCallAddr, GetCryptoProtocolName, (void*&)g_pfnGetCryptoProtocolName, dummy);
+		}
 
-			dwCallAddr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("SSL: Failed to load Client's Private Key"), 2);
+		// hook socket constructor to create ctx objects even if we don't use ssl
+		if (!g_bUseSSL)
+		{
+			dwCallAddr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("new socket()>>"));
 			if (dwCallAddr)
 			{
-				dwCallAddr -= 0x1F;
+				dwCallAddr += 0x62;
 
-				DWORD dwCreateCtxAddr = dwCallAddr + 1;
-				g_pfnEVP_CIPHER_CTX_new = (tEVP_CIPHER_CTX_new)(dwCreateCtxAddr + 4 + *(DWORD*)dwCreateCtxAddr);
+				InlineHookFromCallOpcode((void*)dwCallAddr, SocketConstructor, (void*&)g_pfnSocketConstructor, dummy);
+
+				dwCallAddr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("SSL: Failed to load Client's Private Key"), 2);
+				if (dwCallAddr)
+				{
+					dwCallAddr -= 0x1F;
+
+					DWORD dwCreateCtxAddr = dwCallAddr + 1;
+					g_pfnEVP_CIPHER_CTX_new = (tEVP_CIPHER_CTX_new)(dwCreateCtxAddr + 4 + *(DWORD*)dwCreateCtxAddr);
+				}
+
+				// mega unreliable solution...
+				/*DWORD callInitSSLAddr = (DWORD)dummy + 0x142 + 1;
+				DWORD initSSLAddr = callInitSSLAddr + 4 + *(DWORD*)callInitSSLAddr;
+
+				DWORD createCtxCallAddr = initSSLAddr + 0x15E + 1;
+				g_pfnEVP_CIPHER_CTX_new = (tEVP_CIPHER_CTX_new)(createCtxCallAddr + 4 + *(DWORD*)createCtxCallAddr);*/
 			}
-
-			// mega unreliable solution...
-			/*DWORD callInitSSLAddr = (DWORD)dummy + 0x142 + 1;
-			DWORD initSSLAddr = callInitSSLAddr + 4 + *(DWORD*)callInitSSLAddr;
-
-			DWORD createCtxCallAddr = initSSLAddr + 0x15E + 1;
-			g_pfnEVP_CIPHER_CTX_new = (tEVP_CIPHER_CTX_new)(createCtxCallAddr + 4 + *(DWORD*)createCtxCallAddr);*/
 		}
 	}
 
