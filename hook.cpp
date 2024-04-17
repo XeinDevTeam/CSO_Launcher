@@ -698,7 +698,7 @@ void CSO_Bot_Add()
 
 const char* __fastcall GetCryptoProtocolName(void* _this)
 {
-	if (g_bUseSSL)
+	if (g_bUseOriginalServer || g_bUseSSL)
 	{
 		return g_pfnGetCryptoProtocolName(_this);
 	}
