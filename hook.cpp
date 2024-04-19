@@ -116,7 +116,6 @@ void* g_pSocketManagerConstructor;
 void* (__thiscall* g_pfnSocketManagerConstructor)(void* _this, bool useSSL);
 
 void* g_pServerConnect;
-int(__thiscall* g_pfnServerConnect)(void* __this, unsigned long a2, short a3, int a4);
 
 int(__thiscall* g_pfnGameUI_RunFrame)(void* _this);
 
@@ -161,6 +160,7 @@ void* (__thiscall* g_pfnSocketConstructor)(int _this, int a2, int a3, char a4);
 typedef void*(*tEVP_CIPHER_CTX_new)();
 tEVP_CIPHER_CTX_new g_pfnEVP_CIPHER_CTX_new;
 
+#pragma region Nexon NGClient/NXGSM
 int NGClient_1(void*, void*& object, int, int)
 {
 	// init
@@ -186,6 +186,7 @@ void NXGSM_WriteStageLogA(int a1, char* a2)
 void NXGSM_WriteErrorLogA(int a1, char* a2)
 {
 }
+#pragma endregion
 
 void Pbuf_AddText(const char* text)
 {
@@ -197,12 +198,14 @@ void* __fastcall SockMgr(void* __this, int reg, bool useSSL)
 	return g_pfnSocketManagerConstructor(__this, g_bUseSSL);
 }
 
-int __fastcall ServerConnect(void* _this, int edx, unsigned long ip, short port, int a4)
+CreateHookClass(int, ServerConnect, unsigned long ip, unsigned short port, bool validate)
 {
-	struct in_addr ip_addr;
-	ip_addr.s_addr = ip;
+	return g_pfnServerConnect(ptr, inet_addr(g_pServerIP), htons(atoi(g_pServerPort)), validate);
+}
 
-	return g_pfnServerConnect(_this, inet_addr(g_pServerIP), htons(atoi(g_pServerPort)), a4);
+CreateHook(__cdecl, void, HolePunch__SetServerInfo, unsigned long ip, unsigned short port)
+{
+	g_pfnHolePunch__SetServerInfo(inet_addr(g_pServerIP), htons(atoi(g_pServerPort)));
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -360,6 +363,8 @@ const char* GetBinMetadataName(int metaDataID)
 	return NULL;
 }
 
+#pragma region Packet
+
 class Packet
 {
 public:
@@ -500,35 +505,30 @@ void DumpPacket(const char* packetName, void* packetBuffer, int packetSize)
 int __fastcall Packet_Quest_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
 {
 	DumpPacket("Quest", packetBuffer, packetSize);
-
 	return g_pfnPacket_Quest_Parse(_this, packetBuffer, packetSize);
 }
 
 int __fastcall Packet_UMsg_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
 {
 	DumpPacket("UMsg", packetBuffer, packetSize);
-
 	return g_pfnPacket_UMsg_Parse(_this, packetBuffer, packetSize);
 }
 
 int __fastcall Packet_Alarm_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
 {
 	DumpPacket("Alarm", packetBuffer, packetSize);
-
 	return g_pfnPacket_Alarm_Parse(_this, packetBuffer, packetSize);
 }
 
 int __fastcall Packet_Item_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
 {
 	DumpPacket("Item", packetBuffer, packetSize);
-
 	return g_pfnPacket_Item_Parse(_this, packetBuffer, packetSize);
 }
 
 int __fastcall Packet_Crypt_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
 {
 	DumpPacket("Crypt", packetBuffer, packetSize);
-
 	return g_pfnPacket_Crypt_Parse(_this, packetBuffer, packetSize);
 }
 
@@ -544,6 +544,7 @@ int __fastcall Packet_Host_Parse(Packet* _this, int a2, void* packetBuffer, int 
 
 	return g_pfnPacket_Host_Parse(_this, packetBuffer, packetSize);
 }
+#pragma endregion
 
 void __fastcall LoginDlg_OnCommand(void* _this, int r, const char* command)
 {
@@ -716,6 +717,26 @@ void* __fastcall SocketConstructor(int _this, int reg, int a2, int a3, char a4)
 	return g_pfnSocketConstructor(_this, a2, a3, a4);
 }
 
+CreateHook(__cdecl, void, LogToErrorLog, void* pLogFile, char* fmt, ...)
+{
+	char outputString[4096];
+
+	va_list va;
+	va_start(va, fmt);
+	_vsnprintf_s(outputString, sizeof(outputString), fmt, va);
+	outputString[4095] = 0;
+	va_end(va);
+
+	printf("[LogToErrorLog] %s", outputString);
+
+	g_pfnLogToErrorLog(pLogFile, outputString);
+}
+
+CreateHook(WINAPI, void, OutputDebugStringA, LPCSTR lpOutString)
+{
+	printf("[OutputDebugString] %s\n", lpOutString);
+}
+
 void CreateDebugConsole()
 {
 	AllocConsole();
@@ -886,7 +907,13 @@ void Hook(HMODULE hModule)
 		if (!g_pServerConnect)
 			MessageBox(NULL, "g_pServerConnect == NULL!!!", "Error", MB_OK);
 		else
-			InlineHook(g_pServerConnect, ServerConnect, (void*&)g_pfnServerConnect);
+			InlineHook(g_pServerConnect, Hook_ServerConnect, (void*&)g_pfnServerConnect);
+
+		auto find = (void*)FindPattern("\x55\x8B\xEC\xB8\x00\x00\x00\x00\x66\xA3", "xxxx????xx", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!find)
+			MessageBox(NULL, "HolePunch__SetServerInfo == NULL!!!", "Error", MB_OK);
+		else
+			InlineHook(find, Hook_HolePunch__SetServerInfo, (void*&)g_pfnHolePunch__SetServerInfo);
 
 		{
 			DWORD pushStr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("resource/zombi/ZombieSkillTable_Dedi.csv"));
@@ -911,6 +938,15 @@ void Hook(HMODULE hModule)
 			}
 		}
 	}
+
+	//printf("EngineBase: %p\n", g_dwEngineBase);
+
+	auto addr = (void*)FindPattern("\x55\x8B\xEC\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x8B\x75\x00\x8D\x45\x00\x50\x6A\x00\xFF\x75\x00\x8D\x85\x00\x00\x00\x00\x68\x00\x00\x00\x00\x50\xE8\x00\x00\x00\x00\x8B\x10\xFF\x70\x00\x83\xCA\x00\x52\xFF\x15\x00\x00\x00\x00\x83\xC4", "xxxxx????x????xxxx?xxx?xx?xx?xx?xx????x????xx????xxxx?xx?xxx????xx", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+	//printf("%p\n", addr);
+	if (!addr)
+		MessageBox(NULL, "LogToErrorLog == NULL!!!", "Error", MB_OK);
+	else
+		InlineHook(addr, Hook_LogToErrorLog, (void*&)g_pfnLogToErrorLog);
 
 	g_pEngine = (cl_enginefunc_t*)(PVOID) * (PDWORD)(FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("ScreenFade")) + 0x0D);
 	if (!g_pEngine)
