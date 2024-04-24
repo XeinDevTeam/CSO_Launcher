@@ -737,6 +737,20 @@ CreateHook(WINAPI, void, OutputDebugStringA, LPCSTR lpOutString)
 	printf("[OutputDebugString] %s\n", lpOutString);
 }
 
+CreateHook(__cdecl, int, HolePunch__GetUserSocketInfo, int userID, char* data)
+{
+	auto ret = g_pfnHolePunch__GetUserSocketInfo(userID, data);
+
+	data[0] = 2; // unsafety method, since other places port are corrected
+
+	short port = (short&)data[14];
+	in_addr ip = (in_addr&)data[16];
+
+	printf("[HolePunch__GetUserSocketInfo] ret: %d | UserID: %d, %s:%d\n", ret, userID, inet_ntoa(ip), ntohs(port));
+
+	return ret;
+}
+
 void CreateDebugConsole()
 {
 	AllocConsole();
@@ -914,6 +928,12 @@ void Hook(HMODULE hModule)
 			MessageBox(NULL, "HolePunch__SetServerInfo == NULL!!!", "Error", MB_OK);
 		else
 			InlineHook(find, Hook_HolePunch__SetServerInfo, (void*&)g_pfnHolePunch__SetServerInfo);
+
+		find = (void*)FindPattern("\x55\x8B\xEC\x83\xEC\x00\x57\x8B\x7D\x00\x85\xFF\x75\x00\x8B\x45", "xxxxx?xxx?xxx?xx", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!find)
+			MessageBox(NULL, "HolePunch__GetUserSocketInfo == NULL!!!", "Error", MB_OK);
+		else
+			InlineHook(find, Hook_HolePunch__GetUserSocketInfo, (void*&)g_pfnHolePunch__GetUserSocketInfo);
 
 		{
 			DWORD pushStr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("resource/zombi/ZombieSkillTable_Dedi.csv"));
