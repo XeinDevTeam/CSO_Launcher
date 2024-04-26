@@ -117,7 +117,6 @@ void* g_pSocketManagerConstructor;
 void* (__thiscall* g_pfnSocketManagerConstructor)(void* _this, bool useSSL);
 
 void* g_pServerConnect;
-int(__thiscall* g_pfnServerConnect)(void* __this, unsigned long a2, short a3, int a4);
 
 int(__thiscall* g_pfnGameUI_RunFrame)(void* _this);
 
@@ -164,6 +163,7 @@ int (__thiscall* g_pfnSocket_Read)(void* _this, char* outBuf, int len, void* a4,
 typedef void*(*tEVP_CIPHER_CTX_new)();
 tEVP_CIPHER_CTX_new g_pfnEVP_CIPHER_CTX_new;
 
+#pragma region Nexon NGClient/NXGSM
 int NGClient_1(void*, void*& object, int, int)
 {
 	// init
@@ -189,6 +189,7 @@ void NXGSM_WriteStageLogA(int a1, char* a2)
 void NXGSM_WriteErrorLogA(int a1, char* a2)
 {
 }
+#pragma endregion
 
 void Pbuf_AddText(const char* text)
 {
@@ -200,12 +201,14 @@ void* __fastcall SockMgr(void* __this, int reg, bool useSSL)
 	return g_pfnSocketManagerConstructor(__this, g_bUseSSL);
 }
 
-int __fastcall ServerConnect(void* _this, int edx, unsigned long ip, short port, int a4)
+CreateHookClass(int, ServerConnect, unsigned long ip, unsigned short port, bool validate)
 {
-	struct in_addr ip_addr;
-	ip_addr.s_addr = ip;
+	return g_pfnServerConnect(ptr, inet_addr(g_pServerIP), htons(atoi(g_pServerPort)), validate);
+}
 
-	return g_pfnServerConnect(_this, inet_addr(g_pServerIP), htons(atoi(g_pServerPort)), a4);
+CreateHook(__cdecl, void, HolePunch__SetServerInfo, unsigned long ip, unsigned short port)
+{
+	g_pfnHolePunch__SetServerInfo(inet_addr(g_pServerIP), htons(atoi(g_pServerPort)));
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -294,13 +297,17 @@ const char* GetCSVMetadataName(int metaDataID)
 	case 2:
 		return "ModeList.csv";
 	case 9:
-		return "GameMatchOption.csv";
+		return "MatchOption.csv";
 	case 17:
-		return "WeaponParts.csv";
+		return "weaponparts.csv";
 	case 18:
 		return "MileageShop.csv";
 	case 24:
 		return "GameModeList.csv";
+	case 25:
+		return "badwordadd.csv";
+	case 26:
+		return "badworddel.csv";
 	case 27:
 		return "progress_unlock.csv";
 	case 28:
@@ -325,12 +332,20 @@ const char* GetCSVMetadataName(int metaDataID)
 		return "scenariotx_dedi.json";
 	case 40:
 		return "shopitemlist_dedi.json";
+	case 41:
+		return "EpicPieceShop.csv";
 	case 42:
 		return "WeaponProp.json";
+	case 44:
+		return "SeasonBadgeShop.csv";
 	case 45:
 		return "ppsystem.json";
+	case 46:
+		return "classmastery.json";
 	case 48:
 		return "ZBCompetitive.json"; // required or game will crash
+	case 50:
+		return "ModeEvent.csv";
 	}
 	return NULL;
 }
@@ -348,6 +363,8 @@ const char* GetBinMetadataName(int metaDataID)
 	}
 	return NULL;
 }
+
+#pragma region Packet
 
 class Packet
 {
@@ -489,35 +506,30 @@ void DumpPacket(const char* packetName, void* packetBuffer, int packetSize)
 int __fastcall Packet_Quest_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
 {
 	DumpPacket("Quest", packetBuffer, packetSize);
-
 	return g_pfnPacket_Quest_Parse(_this, packetBuffer, packetSize);
 }
 
 int __fastcall Packet_UMsg_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
 {
 	DumpPacket("UMsg", packetBuffer, packetSize);
-
 	return g_pfnPacket_UMsg_Parse(_this, packetBuffer, packetSize);
 }
 
 int __fastcall Packet_Alarm_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
 {
 	DumpPacket("Alarm", packetBuffer, packetSize);
-
 	return g_pfnPacket_Alarm_Parse(_this, packetBuffer, packetSize);
 }
 
 int __fastcall Packet_Item_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
 {
 	DumpPacket("Item", packetBuffer, packetSize);
-
 	return g_pfnPacket_Item_Parse(_this, packetBuffer, packetSize);
 }
 
 int __fastcall Packet_Crypt_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
 {
 	DumpPacket("Crypt", packetBuffer, packetSize);
-
 	return g_pfnPacket_Crypt_Parse(_this, packetBuffer, packetSize);
 }
 
@@ -533,6 +545,7 @@ int __fastcall Packet_Host_Parse(Packet* _this, int a2, void* packetBuffer, int 
 
 	return g_pfnPacket_Host_Parse(_this, packetBuffer, packetSize);
 }
+#pragma endregion
 
 void __fastcall LoginDlg_OnCommand(void* _this, int r, const char* command)
 {
@@ -757,6 +770,40 @@ int __fastcall Socket_Read(void* _this, int reg, char* outBuf, int len, unsigned
 	return result;
 }
 
+CreateHook(__cdecl, void, LogToErrorLog, void* pLogFile, char* fmt, ...)
+{
+	char outputString[4096];
+
+	va_list va;
+	va_start(va, fmt);
+	_vsnprintf_s(outputString, sizeof(outputString), fmt, va);
+	outputString[4095] = 0;
+	va_end(va);
+
+	printf("[LogToErrorLog] %s", outputString);
+
+	g_pfnLogToErrorLog(pLogFile, outputString);
+}
+
+CreateHook(WINAPI, void, OutputDebugStringA, LPCSTR lpOutString)
+{
+	printf("[OutputDebugString] %s\n", lpOutString);
+}
+
+CreateHook(__cdecl, int, HolePunch__GetUserSocketInfo, int userID, char* data)
+{
+	auto ret = g_pfnHolePunch__GetUserSocketInfo(userID, data);
+
+	data[0] = 2; // unsafety method, since other places port are corrected
+
+	short port = (short&)data[14];
+	in_addr ip = (in_addr&)data[16];
+
+	printf("[HolePunch__GetUserSocketInfo] ret: %d | UserID: %d, %s:%d\n", ret, userID, inet_ntoa(ip), ntohs(port));
+
+	return ret;
+}
+
 void CreateDebugConsole()
 {
 	AllocConsole();
@@ -803,20 +850,20 @@ DWORD WINAPI HookThread(LPVOID lpThreadParameter)
 	g_dwMpSize = GetModuleSize(GetModuleHandle("mp.dll"));
 
 	{
-		// NOP IsDedi() function to load allstar Skill/Status csv (crashing)
-		//DWORD pushStr = FindPush(g_dwMpBase, g_dwMpBase + g_dwMpSize, (PCHAR)("Failed to Open AllStar_Skill-Dedi Table"));
+		// NOP IsDedi() function to load allstar Skill/Status csv
+		DWORD pushStr = FindPush(g_dwMpBase, g_dwMpBase + g_dwMpSize, (PCHAR)("Failed to Open AllStar_Skill-Dedi Table"));
 		// call FF 15
 		// test 85
 		// jz 0F 84
 		// cmp 80 7D
 		// 90 90 90 90 90 90 90 90 90 90 90 90 90 90 80 7D
-		//DWORD patchAddr = pushStr - 0x1B;
-		//char patch[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
-		//WriteMemory((void*)patchAddr, (BYTE*)patch, 14);
+		DWORD patchAddr = pushStr - 0x1B;
+		unsigned char patch[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
+		WriteMemory((void*)patchAddr, (BYTE*)patch, 14);
 
-		//pushStr = FindPush(g_dwMpBase, g_dwMpBase + g_dwMpSize, (PCHAR)("Failed to Open AllStar_Status-Dedi Table"));
-		//patchAddr = pushStr - 0x1E; // or 0x1B?
-		//WriteMemory((void*)patchAddr, (BYTE*)patch, 14);
+		pushStr = FindPush(g_dwMpBase, g_dwMpBase + g_dwMpSize, (PCHAR)("Failed to Open AllStar_Status-Dedi Table"));
+		patchAddr = pushStr - 0x1E; // or 0x1B?
+		WriteMemory((void*)patchAddr, (BYTE*)patch, 14);
 	}
 
 	g_pEngine->pfnAddCommand("cso_bot_add", CSO_Bot_Add);
@@ -879,6 +926,7 @@ void Init(HMODULE hModule)
 	g_bDumpAlarm = CommandLine()->CheckParm("-dumpalarm");
 	g_bDumpItem = CommandLine()->CheckParm("-dumpitem");
 	g_bDumpAll = CommandLine()->CheckParm("-dumpall");
+	g_bDumpCrypt = CommandLine()->CheckParm("-dumpcrypt");
 	g_bDisableAuthUI = CommandLine()->CheckParm("-disableauthui");
 	g_bDumpUDP = CommandLine()->CheckParm("-dumpudp");
 	g_bUseSSL = CommandLine()->CheckParm("-usessl");
@@ -927,7 +975,19 @@ void Hook(HMODULE hModule)
 		if (!g_pServerConnect)
 			MessageBox(NULL, "g_pServerConnect == NULL!!!", "Error", MB_OK);
 		else
-			InlineHook(g_pServerConnect, ServerConnect, (void*&)g_pfnServerConnect);
+			InlineHook(g_pServerConnect, Hook_ServerConnect, (void*&)g_pfnServerConnect);
+
+		auto find = (void*)FindPattern("\x55\x8B\xEC\xB8\x00\x00\x00\x00\x66\xA3", "xxxx????xx", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!find)
+			MessageBox(NULL, "HolePunch__SetServerInfo == NULL!!!", "Error", MB_OK);
+		else
+			InlineHook(find, Hook_HolePunch__SetServerInfo, (void*&)g_pfnHolePunch__SetServerInfo);
+
+		find = (void*)FindPattern("\x55\x8B\xEC\x83\xEC\x00\x57\x8B\x7D\x00\x85\xFF\x75\x00\x8B\x45", "xxxxx?xxx?xxx?xx", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!find)
+			MessageBox(NULL, "HolePunch__GetUserSocketInfo == NULL!!!", "Error", MB_OK);
+		else
+			InlineHook(find, Hook_HolePunch__GetUserSocketInfo, (void*&)g_pfnHolePunch__GetUserSocketInfo);
 
 		{
 			DWORD pushStr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("resource/zombi/ZombieSkillTable_Dedi.csv"));
@@ -952,6 +1012,15 @@ void Hook(HMODULE hModule)
 			}
 		}
 	}
+
+	//printf("EngineBase: %p\n", g_dwEngineBase);
+
+	auto addr = (void*)FindPattern("\x55\x8B\xEC\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x8B\x75\x00\x8D\x45\x00\x50\x6A\x00\xFF\x75\x00\x8D\x85\x00\x00\x00\x00\x68\x00\x00\x00\x00\x50\xE8\x00\x00\x00\x00\x8B\x10\xFF\x70\x00\x83\xCA\x00\x52\xFF\x15\x00\x00\x00\x00\x83\xC4", "xxxxx????x????xxxx?xxx?xx?xx?xx?xx????x????xx????xxxx?xx?xxx????xx", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+	//printf("%p\n", addr);
+	if (!addr)
+		MessageBox(NULL, "LogToErrorLog == NULL!!!", "Error", MB_OK);
+	else
+		InlineHook(addr, Hook_LogToErrorLog, (void*&)g_pfnLogToErrorLog);
 
 	g_pEngine = (cl_enginefunc_t*)(PVOID) * (PDWORD)(FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("ScreenFade")) + 0x0D);
 	if (!g_pEngine)
@@ -1043,40 +1112,43 @@ void Hook(HMODULE hModule)
 		}
 	}
 
-	// hook GetCryptoProtocolName func to make Crypt work
-	DWORD dwCallAddr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("CRYPT_ERROR"));
-	if (dwCallAddr)
+	if (!g_bUseOriginalServer)
 	{
-		dwCallAddr -= 0x117;
-
-		InlineHookFromCallOpcode((void*)dwCallAddr, GetCryptoProtocolName, (void*&)g_pfnGetCryptoProtocolName, dummy);
-	}
-
-	// hook socket constructor to create ctx objects even if we don't use ssl
-	if (!g_bUseSSL)
-	{
-		dwCallAddr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("new socket()>>"));
+		// hook GetCryptoProtocolName func to make Crypt work
+		DWORD dwCallAddr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("CRYPT_ERROR"));
 		if (dwCallAddr)
 		{
-			dwCallAddr += 0x62;
+			dwCallAddr -= 0x117;
 
-			InlineHookFromCallOpcode((void*)dwCallAddr, SocketConstructor, (void*&)g_pfnSocketConstructor, dummy);
+			InlineHookFromCallOpcode((void*)dwCallAddr, GetCryptoProtocolName, (void*&)g_pfnGetCryptoProtocolName, dummy);
+		}
 
-			dwCallAddr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("SSL: Failed to load Client's Private Key"), 2);
+		// hook socket constructor to create ctx objects even if we don't use ssl
+		if (!g_bUseSSL)
+		{
+			dwCallAddr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("new socket()>>"));
 			if (dwCallAddr)
 			{
-				dwCallAddr -= 0x1F;
+				dwCallAddr += 0x62;
 
-				DWORD dwCreateCtxAddr = dwCallAddr + 1;
-				g_pfnEVP_CIPHER_CTX_new = (tEVP_CIPHER_CTX_new)(dwCreateCtxAddr + 4 + *(DWORD*)dwCreateCtxAddr);
+				InlineHookFromCallOpcode((void*)dwCallAddr, SocketConstructor, (void*&)g_pfnSocketConstructor, dummy);
+
+				dwCallAddr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("SSL: Failed to load Client's Private Key"), 2);
+				if (dwCallAddr)
+				{
+					dwCallAddr -= 0x1F;
+
+					DWORD dwCreateCtxAddr = dwCallAddr + 1;
+					g_pfnEVP_CIPHER_CTX_new = (tEVP_CIPHER_CTX_new)(dwCreateCtxAddr + 4 + *(DWORD*)dwCreateCtxAddr);
+				}
+
+				// mega unreliable solution...
+				/*DWORD callInitSSLAddr = (DWORD)dummy + 0x142 + 1;
+				DWORD initSSLAddr = callInitSSLAddr + 4 + *(DWORD*)callInitSSLAddr;
+
+				DWORD createCtxCallAddr = initSSLAddr + 0x15E + 1;
+				g_pfnEVP_CIPHER_CTX_new = (tEVP_CIPHER_CTX_new)(createCtxCallAddr + 4 + *(DWORD*)createCtxCallAddr);*/
 			}
-
-			// mega unreliable solution...
-			/*DWORD callInitSSLAddr = (DWORD)dummy + 0x142 + 1;
-			DWORD initSSLAddr = callInitSSLAddr + 4 + *(DWORD*)callInitSSLAddr;
-
-			DWORD createCtxCallAddr = initSSLAddr + 0x15E + 1;
-			g_pfnEVP_CIPHER_CTX_new = (tEVP_CIPHER_CTX_new)(createCtxCallAddr + 4 + *(DWORD*)createCtxCallAddr);*/
 		}
 	}
 
