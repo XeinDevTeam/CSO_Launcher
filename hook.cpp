@@ -83,6 +83,8 @@ bool g_bDumpQuest = false;
 bool g_bDumpUMsg = false;
 bool g_bDumpAlarm = false;
 bool g_bDumpItem = false;
+bool g_bDumpCrypt = false;
+bool g_bDumpAll = false;
 bool g_bDisableAuthUI = false;
 bool g_bDumpUDP = false;
 bool g_bUseSSL = false;
@@ -157,13 +159,15 @@ const char*(__thiscall* g_pfnGetCryptoProtocolName)(void* _this);
 
 void* (__thiscall* g_pfnSocketConstructor)(int _this, int a2, int a3, char a4);
 
+int (__thiscall* g_pfnSocket_Read)(void* _this, char* outBuf, int len, void* a4, bool initialMsg);
+
 typedef void*(*tEVP_CIPHER_CTX_new)();
 tEVP_CIPHER_CTX_new g_pfnEVP_CIPHER_CTX_new;
 
 int NGClient_1(void*, void*& object, int, int)
 {
 	// init
-	object = (void*)0x1; // write dummy shit to pass check
+	object = (void*)0x1; // write dummy shit to pass check but if server send packet_hack game crashes
 	return 0;
 }
 
@@ -215,7 +219,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	return CallWindowProc(oWndProc, hWnd, uMsg, wParam, lParam);
 }
 
-bool LoadCsv(int* _this, const char* filename, unsigned char* defualtBuf, int defaultBufSize, bool fromFile)
+bool LoadCsv(int* _this, const char* filename, unsigned char* defaultBuf, int defaultBufSize, bool fromFile)
 {
 	unsigned char* buffer = NULL;
 	long size = 0;
@@ -247,17 +251,15 @@ bool LoadCsv(int* _this, const char* filename, unsigned char* defualtBuf, int de
 	}
 	else
 	{
-		buffer = defualtBuf;
+		buffer = defaultBuf;
 		size = defaultBufSize;
 	}
 
 	g_pfnParseCSV(_this, buffer, size);
 
-	bool result;
+	bool result = 0;
 	if (_this[2])
 		result = _this[3] != 0;
-	else
-		result = 0;
 
 	return result;
 }
@@ -703,6 +705,58 @@ void* __fastcall SocketConstructor(int _this, int reg, int a2, int a3, char a4)
 	return g_pfnSocketConstructor(_this, a2, a3, a4);
 }
 
+int __fastcall Socket_Read(void* _this, int reg, char* outBuf, int len, unsigned short *outLen, bool initialMsg)
+{
+	int result = g_pfnSocket_Read(_this, outBuf, len, outLen, initialMsg);
+
+	// this + 0x34 - read buf
+
+	// 0 - got message, 4 - wrong header, 6 - idk, 7 - got less than 4 bytes, 8 - bad sequence
+	if (!initialMsg && result == 0)
+	{
+		// create folder
+		CreateDirectory("Packets", NULL);
+
+		static int directoryCounter = 0;
+		if (!directoryCounter)
+		{
+			while (true)
+			{
+				char directory[MAX_PATH];
+				snprintf(directory, sizeof(directory), "Packets/%d", ++directoryCounter);
+
+				DWORD dwAttr = GetFileAttributes(directory);
+				if (dwAttr != 0xffffffff && (dwAttr & FILE_ATTRIBUTE_DIRECTORY))
+				{
+					continue;
+				}
+
+				CreateDirectory(directory, NULL);
+				break;
+			}
+		}
+
+		// write file
+		unsigned char* buf = (unsigned char*)(outBuf);
+		unsigned short dataLen = *outLen;
+
+		static int packetCounter = 0;
+
+		char filename[MAX_PATH];
+		bool moreInfo = false;
+		if (moreInfo)
+			snprintf(filename, sizeof(filename), "Packets/%d/Packet_%d_ID_%d_%d.bin", directoryCounter, packetCounter++, buf[0], dataLen);
+		else
+			snprintf(filename, sizeof(filename), "Packets/%d/Packet_%d.bin", directoryCounter, packetCounter++);
+
+		FILE* file = fopen(filename, "wb");
+		fwrite(buf, dataLen, 1, file);
+		fclose(file);
+	}
+
+	return result;
+}
+
 void CreateDebugConsole()
 {
 	AllocConsole();
@@ -824,6 +878,7 @@ void Init(HMODULE hModule)
 	g_bDumpUMsg = CommandLine()->CheckParm("-dumpumsg");
 	g_bDumpAlarm = CommandLine()->CheckParm("-dumpalarm");
 	g_bDumpItem = CommandLine()->CheckParm("-dumpitem");
+	g_bDumpAll = CommandLine()->CheckParm("-dumpall");
 	g_bDisableAuthUI = CommandLine()->CheckParm("-disableauthui");
 	g_bDumpUDP = CommandLine()->CheckParm("-dumpudp");
 	g_bUseSSL = CommandLine()->CheckParm("-usessl");
@@ -883,13 +938,13 @@ void Hook(HMODULE hModule)
 
 			if (opcode == 0xE8 && pushStr && InlineHookFromCallOpcode((void*)(pushStr + 0xF), CreateStringTable, (void*&)g_pfnCreateStringTable, dummy))
 			{
-				DWORD parseCsvCallAddr = (DWORD)dummy + 0x71 + 1;
+				DWORD parseCsvCallAddr = (DWORD)dummy + 0x71 + 1; // 0x71
 				g_pfnParseCSV = (tParseCSV)(parseCsvCallAddr + 4 + *(DWORD*)parseCsvCallAddr);
 
 				// patch LoadZombieSkill function to load csv bypassing filesystem
 				DWORD patchAddr = pushStr - 0x1A;
 				BYTE patch[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
-				WriteMemory((void*)patchAddr, (BYTE*)patch, 13);
+				WriteMemory((void*)patchAddr, (BYTE*)patch, sizeof(patch));
 			}
 			else
 			{
@@ -958,7 +1013,7 @@ void Hook(HMODULE hModule)
 		printf("0x%p\n", g_pPacket_Item_Parse);
 	}
 
-	if (1/*g_bDumpCrypt*/)
+	if (g_bDumpCrypt)
 	{
 		g_pPacket_Crypt_Parse = (void*)FindPattern(PACKET_CRYPT_SIG, PACKET_CRYPT_MASK, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 		if (!g_pPacket_Crypt_Parse)
@@ -967,6 +1022,15 @@ void Hook(HMODULE hModule)
 		InlineHook(g_pPacket_Crypt_Parse, Packet_Crypt_Parse, (void*&)g_pfnPacket_Crypt_Parse);
 
 		printf("0x%p\n", g_pPacket_Crypt_Parse);
+	}
+
+	if (g_bDumpAll)
+	{
+		DWORD dwCallAddr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("SocketManager - Initial ReadPacket() failed. (return = %d)\n")) - 0x10;
+		if (dwCallAddr == -0x10)
+			MessageBox(NULL, "dwCallAddr == 0!!!", "Error", MB_OK);
+
+		InlineHookFromCallOpcode((void*)dwCallAddr, Socket_Read, (void*&)g_pfnSocket_Read, dummy);
 	}
 
 	if (!g_bUseOriginalServer)
