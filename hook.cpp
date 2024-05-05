@@ -825,17 +825,17 @@ void CreateDebugConsole()
 
 DWORD WINAPI HookThread(LPVOID lpThreadParameter)
 {
-	while (!g_dwGameUIBase) // wait for gameui module
-	{
-		g_dwGameUIBase = (DWORD)GetModuleHandle("gameui.dll");
-		Sleep(500);
-	}
-
 	hWnd = FindWindow(NULL, "Counter-Strike Nexon: Studio");
 	oWndProc = (WNDPROC)SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)WndProc);
 
 	if (!g_bUseOriginalServer)
 	{
+		while (!g_dwGameUIBase) // wait for gameui module
+		{
+			g_dwGameUIBase = (DWORD)GetModuleHandle("gameui.dll");
+			Sleep(500);
+		}
+
 		g_dwGameUISize = GetModuleSize(GetModuleHandle("gameui.dll"));
 
 		g_pChattingManager = g_pEngine->GetChatManager();
