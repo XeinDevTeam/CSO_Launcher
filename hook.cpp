@@ -345,6 +345,8 @@ const char* GetCSVMetadataName(int metaDataID)
 		return "ZBCompetitive.json"; // required or game will crash
 	case 50:
 		return "ModeEvent.csv";
+	case 51:
+		return "EventShop.csv";
 	}
 	return NULL;
 }
