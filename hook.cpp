@@ -70,6 +70,8 @@ DWORD g_dwMpSize;
 #define PACKET_CRYPT_SIG "\x55\x8B\xEC\x6A\xFF\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\xF0\x53\x56\x57\x50\x8D\x45\xF4\x64\xA3\x00\x00\x00\x00\x8B\x45\x08\x89\x85\x00\x00\x00\x00\x8B\x45\x0C\xC7\x85\x00\x00\x00\x00\x00\x00\x00\x00\xC7\x85\x00\x00\x00\x00\x00\x00\x00\x00\x89\x85\x00\x00\x00\x00\x6A\x01\x8D\x85\x00\x00\x00\x00\xC7\x45\x00\x00\x00\x00\x00\x50\x8D\x8D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x0F\xB6\x9D\x00\x00\x00\x00"
 #define PACKET_CRYPT_MASK "xxxxxx????xx????xxx????x????xxxxxxxxxxxxxx????xxxxx????xxxxx????????xx????????xx????xxxx????xx?????xxx????x????xxx????"
 
+#define PACKET_HACK_SIG "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x83\xEC\x00\x53\x56\x57\xA1\x00\x00\x00\x00\x33\xC5\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x8B\xD9\x89\x5D\x00\x8B\x45\x00\x89\x45\x00\x8B\x45\x00\xC7\x45\x00\x00\x00\x00\x00\xC7\x45\x00\x00\x00\x00\x00\x89\x45\x00\x6A\x00\x8D\x45\x00\xC7\x45\x00\x00\x00\x00\x00\x50\x8D\x4D\x00\xE8\x00\x00\x00\x00\x0F\xB6\x45\x00\x89\x43\x00\x83\xE8"
+#define PACKET_HACK_MASK "xxxx?x????xx????xxx?xxxx????xxxxx?xx????xxxx?xx?xx?xx?xx?????xx?????xx?x?xx?xx?????xxx?x????xxx?xx?xx"
 
 char g_pServerIP[16];
 char g_pServerPort[6];
@@ -164,16 +166,13 @@ typedef void*(*tEVP_CIPHER_CTX_new)();
 tEVP_CIPHER_CTX_new g_pfnEVP_CIPHER_CTX_new;
 
 #pragma region Nexon NGClient/NXGSM
-int NGClient_1(void*, void*& object, int, int)
+char NGClient_Return1()
 {
-	// init
-	object = (void*)0x1; // write dummy shit to pass check but if server send packet_hack game crashes
-	return 0;
+	return 1;
 }
 
-bool NGClient_Dummy()
+void NGClient_Void()
 {
-	return false;
 }
 
 // logger shit
@@ -346,6 +345,8 @@ const char* GetCSVMetadataName(int metaDataID)
 		return "ZBCompetitive.json"; // required or game will crash
 	case 50:
 		return "ModeEvent.csv";
+	case 51:
+		return "EventShop.csv";
 	}
 	return NULL;
 }
@@ -544,6 +545,11 @@ int __fastcall Packet_Host_Parse(Packet* _this, int a2, void* packetBuffer, int 
 	}
 
 	return g_pfnPacket_Host_Parse(_this, packetBuffer, packetSize);
+}
+
+int __fastcall Packet_Hack_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
+{
+	return 1;
 }
 #pragma endregion
 
@@ -821,52 +827,55 @@ void CreateDebugConsole()
 
 DWORD WINAPI HookThread(LPVOID lpThreadParameter)
 {
-	while (!g_dwGameUIBase) // wait for gameui module
-	{
-		g_dwGameUIBase = (DWORD)GetModuleHandle("gameui.dll");
-		Sleep(500);
-	}
-
-	g_dwGameUISize = GetModuleSize(GetModuleHandle("gameui.dll"));
-
 	hWnd = FindWindow(NULL, "Counter-Strike Nexon: Studio");
 	oWndProc = (WNDPROC)SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)WndProc);
 
-	g_pChattingManager = g_pEngine->GetChatManager();
-	if (!g_pChattingManager)
-		MessageBox(NULL, "g_pChattingManager == NULL!!!", "Error", MB_OK);
-
-	CreateInterfaceFn gameui_factory = CaptureFactory("gameui.dll");
-	CreateInterfaceFn vgui2_factory = CaptureFactory("vgui2.dll");
-	g_pGameUI = (IGameUI*)(CaptureInterface(gameui_factory, GAMEUI_INTERFACE_VERSION));
-	g_pPanel = (vgui::IPanel*)(CaptureInterface(vgui2_factory, VGUI_PANEL_INTERFACE_VERSION));
-	VFTHook(g_pGameUI, 0, 7, GameUI_RunFrame, (void*&)g_pfnGameUI_RunFrame);
-
-	while (!g_dwMpBase) // wait for mp.dll module
+	if (!g_bUseOriginalServer)
 	{
-		g_dwMpBase = (DWORD)GetModuleHandle("mp.dll");
-		Sleep(500);
+		while (!g_dwGameUIBase) // wait for gameui module
+		{
+			g_dwGameUIBase = (DWORD)GetModuleHandle("gameui.dll");
+			Sleep(500);
+		}
+
+		g_dwGameUISize = GetModuleSize(GetModuleHandle("gameui.dll"));
+
+		g_pChattingManager = g_pEngine->GetChatManager();
+		if (!g_pChattingManager)
+			MessageBox(NULL, "g_pChattingManager == NULL!!!", "Error", MB_OK);
+
+		CreateInterfaceFn gameui_factory = CaptureFactory("gameui.dll");
+		CreateInterfaceFn vgui2_factory = CaptureFactory("vgui2.dll");
+		g_pGameUI = (IGameUI*)(CaptureInterface(gameui_factory, GAMEUI_INTERFACE_VERSION));
+		g_pPanel = (vgui::IPanel*)(CaptureInterface(vgui2_factory, VGUI_PANEL_INTERFACE_VERSION));
+		VFTHook(g_pGameUI, 0, 7, GameUI_RunFrame, (void*&)g_pfnGameUI_RunFrame);
+
+		while (!g_dwMpBase) // wait for mp.dll module
+		{
+			g_dwMpBase = (DWORD)GetModuleHandle("mp.dll");
+			Sleep(500);
+		}
+		g_dwMpSize = GetModuleSize(GetModuleHandle("mp.dll"));
+
+		{
+			// NOP IsDedi() function to load allstar Skill/Status csv
+			DWORD pushStr = FindPush(g_dwMpBase, g_dwMpBase + g_dwMpSize, (PCHAR)("Failed to Open AllStar_Skill-Dedi Table"));
+			// call FF 15
+			// test 85
+			// jz 0F 84
+			// cmp 80 7D
+			// 90 90 90 90 90 90 90 90 90 90 90 90 90 90 80 7D
+			DWORD patchAddr = pushStr - 0x1B;
+			unsigned char patch[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
+			WriteMemory((void*)patchAddr, (BYTE*)patch, 14);
+
+			pushStr = FindPush(g_dwMpBase, g_dwMpBase + g_dwMpSize, (PCHAR)("Failed to Open AllStar_Status-Dedi Table"));
+			patchAddr = pushStr - 0x1E; // or 0x1B?
+			WriteMemory((void*)patchAddr, (BYTE*)patch, 14);
+		}
+
+		g_pEngine->pfnAddCommand("cso_bot_add", CSO_Bot_Add);
 	}
-	g_dwMpSize = GetModuleSize(GetModuleHandle("mp.dll"));
-
-	{
-		// NOP IsDedi() function to load allstar Skill/Status csv
-		DWORD pushStr = FindPush(g_dwMpBase, g_dwMpBase + g_dwMpSize, (PCHAR)("Failed to Open AllStar_Skill-Dedi Table"));
-		// call FF 15
-		// test 85
-		// jz 0F 84
-		// cmp 80 7D
-		// 90 90 90 90 90 90 90 90 90 90 90 90 90 90 80 7D
-		DWORD patchAddr = pushStr - 0x1B;
-		unsigned char patch[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
-		WriteMemory((void*)patchAddr, (BYTE*)patch, 14);
-
-		pushStr = FindPush(g_dwMpBase, g_dwMpBase + g_dwMpSize, (PCHAR)("Failed to Open AllStar_Status-Dedi Table"));
-		patchAddr = pushStr - 0x1E; // or 0x1B?
-		WriteMemory((void*)patchAddr, (BYTE*)patch, 14);
-	}
-
-	g_pEngine->pfnAddCommand("cso_bot_add", CSO_Bot_Add);
 
 	return TRUE;
 }
@@ -945,11 +954,32 @@ void Hook(HMODULE hModule)
 	
 	if (!g_bNoNGHook)
 	{
-		IATHookOrdinal(g_hEngineModule, "NGClient.aes", 1, NGClient_1, dummy);
-		IATHookOrdinal(g_hEngineModule, "NGClient.aes", 2, NGClient_Dummy, dummy);
-		IATHookOrdinal(g_hEngineModule, "NGClient.aes", 4, NGClient_Dummy, dummy);
-		IATHookOrdinal(g_hEngineModule, "NGClient.aes", 5, NGClient_Dummy, dummy);
-		IATHookOrdinal(g_hEngineModule, "NGClient.aes", 6, NGClient_Dummy, dummy);
+		DWORD find = FindPattern("\xE8\x00\x00\x00\x00\x84\xC0\x75\x00\xE8\x00\x00\x00\x00\x33\xC0", "x????xxx?x????xx", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!find)
+			MessageBox(NULL, "NGClient_Init == NULL!!!", "Error", MB_OK);
+		else
+			InlineHookFromCallOpcode((void*)find, NGClient_Return1, dummy, dummy);
+
+		find = FindPattern("\xE8\x00\x00\x00\x00\x33\xC0\xE9\x00\x00\x00\x00\xEB", "x????xxx????x", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!find)
+			MessageBox(NULL, "NGClient_Quit == NULL!!!", "Error", MB_OK);
+		else
+			InlineHookFromCallOpcode((void*)find, NGClient_Void, dummy, dummy);
+
+		find = FindPattern("\xE8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\xEB\x00\x43\x56\x20\x20\x0D", "x????x????x?xxxxx", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!find)
+			MessageBox(NULL, "Packet_Hack_Send == NULL!!!", "Error", MB_OK);
+		else
+		{
+			InlineHookFromCallOpcode((void*)find, NGClient_Void, dummy, dummy);
+			InlineHookFromCallOpcode((void*)(find + 0x5), NGClient_Return1, dummy, dummy);
+		}
+
+		find = FindPattern(PACKET_HACK_SIG, PACKET_HACK_MASK, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!find)
+			MessageBox(NULL, "Packet_Hack_Receive == NULL!!!", "Error", MB_OK);
+		else
+			InlineHook((void*)find, Packet_Hack_Parse, dummy);
 	}
 
 	IATHook(g_hEngineModule, "nxgsm.dll", "InitializeGameLogManagerA", NXGSM_Dummy, dummy);
@@ -1102,14 +1132,11 @@ void Hook(HMODULE hModule)
 		InlineHookFromCallOpcode((void*)dwCallAddr, Socket_Read, (void*&)g_pfnSocket_Read, dummy);
 	}
 
-	if (!g_bUseOriginalServer)
+	// patch launcher name in hw.dll to fix annoying message box (length of launcher filename must be < original name)
+	DWORD strAddr = FindPattern("cstrike-online.exe", strlen("cstrike-online.exe"), g_dwEngineBase, g_dwEngineBase + g_dwEngineSize);
+	if (strAddr)
 	{
-		// patch launcher name in hw.dll to fix annoying message box (length of launcher filename must be < original name)
-		DWORD strAddr = FindPattern("cstrike-online.exe", strlen("cstrike-online.exe"), g_dwEngineBase, g_dwEngineBase + g_dwEngineSize);
-		if (strAddr)
-		{
-			WriteMemory((void*)strAddr, (BYTE*)"CSOLauncher.exe", strlen("CSOLauncher.exe") + 1);
-		}
+		WriteMemory((void*)strAddr, (BYTE*)"CSOLauncher.exe", strlen("CSOLauncher.exe") + 1);
 	}
 
 	if (!g_bUseOriginalServer)
