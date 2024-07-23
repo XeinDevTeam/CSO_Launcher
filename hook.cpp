@@ -12,6 +12,8 @@
 #include "XZip.h"
 
 #include <vector>
+#include <string>
+#include <unordered_map>
 
 HMODULE g_hEngineModule;
 DWORD g_dwEngineBase;
@@ -135,7 +137,7 @@ tCreateStringTable g_pfnCreateStringTable;
 typedef void(__thiscall* tParseCSV)(int* _this, unsigned char* buffer, int size);
 tParseCSV g_pfnParseCSV;
 
-typedef int(__stdcall* tLoadJson)(const char* filename[4], unsigned char** buffer);
+typedef int(__stdcall* tLoadJson)(std::string* filename, std::string* buffer);
 tLoadJson g_pfnLoadJson;
 
 void* g_pPacket_Metadata_Parse;
@@ -284,13 +286,63 @@ bool __fastcall CreateStringTable(int* _this, int shit, const char* filename)
 	return g_pfnCreateStringTable(_this, filename);
 }
 
-bool LoadJsonFromFile(const char* filename[4], unsigned char** oriBuf, unsigned char* defaultBuf, int defaultBufSize)
+enum zombieSkillProperty {
+	ZombieSkillProperty_Crazy,
+	ZombieSkillProperty_JumpBuff,
+	ZombieSkillProperty_ArmorUp,
+	ZombieSkillProperty_Heal,
+	ZombieSkillProperty_ShieldBuf,
+	ZombieSkillProperty_Cloacking,
+	ZombieSkillProperty_Trap,
+	ZombieSkillProperty_Smoke,
+	ZombieSkillProperty_VoodooHeal,
+	ZombieSkillProperty_Shock,
+	ZombieSkillProperty_Rush,
+	ZombieSkillProperty_Pile,
+	ZombieSkillProperty_Bat,
+	ZombieSkillProperty_Stiffen,
+	ZombieSkillProperty_SelfDestruct,
+	ZombieSkillProperty_Penetration,
+	ZombieSkillProperty_Revival,
+	ZombieSkillProperty_Telleport,
+	ZombieSkillProperty_Boost,
+	ZombieSkillProperty_BombCreate,
+	ZombieSkillProperty_Flying,
+	ZombieSkillProperty_Fireball
+};
+
+std::unordered_map<std::string, zombieSkillProperty> zbSkillProp = {
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Crazy.csv", ZombieSkillProperty_Crazy },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_JumpBuff.csv", ZombieSkillProperty_JumpBuff },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_ArmorUp.csv", ZombieSkillProperty_ArmorUp },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Heal.csv", ZombieSkillProperty_Heal },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_ShieldBuf.csv", ZombieSkillProperty_ShieldBuf },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Cloacking.csv", ZombieSkillProperty_Cloacking },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Trap.csv", ZombieSkillProperty_Trap },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Smoke.csv", ZombieSkillProperty_Smoke },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_VoodooHeal.csv", ZombieSkillProperty_VoodooHeal },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Shock.csv", ZombieSkillProperty_Shock },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Rush.csv", ZombieSkillProperty_Rush },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Pile.csv", ZombieSkillProperty_Pile },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Bat.csv", ZombieSkillProperty_Bat },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Stiffen.csv", ZombieSkillProperty_Stiffen },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_SelfDestruct.csv", ZombieSkillProperty_SelfDestruct },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Penetration.csv", ZombieSkillProperty_Penetration },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Revival.csv", ZombieSkillProperty_Revival },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Telleport.csv", ZombieSkillProperty_Telleport },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Boost.csv", ZombieSkillProperty_Boost },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_BombCreate.csv", ZombieSkillProperty_BombCreate },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Flying.csv", ZombieSkillProperty_Flying },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Fireball.csv", ZombieSkillProperty_Fireball },
+};
+
+bool LoadJsonFromFile(std::string* filename, std::string* oriBuf, unsigned char* defaultBuf, int defaultBufSize, std::string zbSkill)
 {
 	unsigned char* buffer = NULL;
 	long size = 0;
 	if (g_bLoadZBSkillFromFile)
 	{
-		FILE* f = fopen("ZombieSkillProperty_Crazy.csv", "r");
+		FILE* f = fopen(zbSkill.c_str(), "r");
 		if (!f)
 		{
 			return g_pfnLoadJson(filename, oriBuf);
@@ -305,7 +357,7 @@ bool LoadJsonFromFile(const char* filename[4], unsigned char** oriBuf, unsigned 
 			return g_pfnLoadJson(filename, oriBuf);
 		}
 
-		buffer = (unsigned char*)malloc(size + 1);
+		buffer = (unsigned char*)malloc(size);
 		if (!buffer)
 		{
 			return g_pfnLoadJson(filename, oriBuf);
@@ -320,24 +372,43 @@ bool LoadJsonFromFile(const char* filename[4], unsigned char** oriBuf, unsigned 
 		size = defaultBufSize;
 	}
 
-	oriBuf[0] = buffer;
+	*oriBuf = std::string((char*)buffer, (char*)buffer + size);
 
 	return 1;
 }
 
-int __stdcall LoadJson(const char* filename[4], unsigned char** buffer)
+int __stdcall LoadJson(std::string* filename, std::string* buffer)
 {
-	if (strcmp((const char*)filename, "maps/ZBS.json") != 0) // This one crashes if we try to access filename[0], so let's just skip it
-	{
-		printf("%s\n", filename[0]);
+	printf("%s\n", filename->c_str());
 
-		if (!strcmp(filename[0], "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Crazy.csv"))
+	if (zbSkillProp.find(*filename) != zbSkillProp.end())
+	{
+		std::string zbSkill = filename->substr(40);
+
+		switch (zbSkillProp[*filename])
 		{
-			return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Crazy, sizeof(g_ZombieSkillProperty_Crazy));
-		}
-		else if (!strcmp(filename[0], "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_JumpBuff.csv"))
-		{
-			return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_JumpBuff, sizeof(g_ZombieSkillProperty_JumpBuff));
+		case ZombieSkillProperty_Crazy: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Crazy, sizeof(g_ZombieSkillProperty_Crazy), zbSkill);
+		case ZombieSkillProperty_JumpBuff: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_JumpBuff, sizeof(g_ZombieSkillProperty_JumpBuff), zbSkill);
+		case ZombieSkillProperty_ArmorUp: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_ArmorUp, sizeof(g_ZombieSkillProperty_ArmorUp), zbSkill);
+		case ZombieSkillProperty_Heal: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Heal, sizeof(g_ZombieSkillProperty_Heal), zbSkill);
+		case ZombieSkillProperty_ShieldBuf: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_ShieldBuf, sizeof(g_ZombieSkillProperty_ShieldBuf), zbSkill);
+		case ZombieSkillProperty_Cloacking: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Cloacking, sizeof(g_ZombieSkillProperty_Cloacking), zbSkill);
+		case ZombieSkillProperty_Trap: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Trap, sizeof(g_ZombieSkillProperty_Trap), zbSkill);
+		case ZombieSkillProperty_Smoke: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Smoke, sizeof(g_ZombieSkillProperty_Smoke), zbSkill);
+		case ZombieSkillProperty_VoodooHeal: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_VoodooHeal, sizeof(g_ZombieSkillProperty_VoodooHeal), zbSkill);
+		case ZombieSkillProperty_Shock: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Shock, sizeof(g_ZombieSkillProperty_Shock), zbSkill);
+		case ZombieSkillProperty_Rush: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Rush, sizeof(g_ZombieSkillProperty_Rush), zbSkill);
+		case ZombieSkillProperty_Pile: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Pile, sizeof(g_ZombieSkillProperty_Pile), zbSkill);
+		case ZombieSkillProperty_Bat: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Bat, sizeof(g_ZombieSkillProperty_Bat), zbSkill);
+		case ZombieSkillProperty_Stiffen: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Stiffen, sizeof(g_ZombieSkillProperty_Stiffen), zbSkill);
+		case ZombieSkillProperty_SelfDestruct: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_SelfDestruct, sizeof(g_ZombieSkillProperty_SelfDestruct), zbSkill);
+		case ZombieSkillProperty_Penetration: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Penetration, sizeof(g_ZombieSkillProperty_Penetration), zbSkill);
+		case ZombieSkillProperty_Revival: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Revival, sizeof(g_ZombieSkillProperty_Revival), zbSkill);
+		case ZombieSkillProperty_Telleport: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Telleport, sizeof(g_ZombieSkillProperty_Telleport), zbSkill);
+		case ZombieSkillProperty_Boost: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Boost, sizeof(g_ZombieSkillProperty_Boost), zbSkill);
+		case ZombieSkillProperty_BombCreate: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_BombCreate, sizeof(g_ZombieSkillProperty_BombCreate), zbSkill);
+		case ZombieSkillProperty_Flying: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Flying, sizeof(g_ZombieSkillProperty_Flying), zbSkill);
+		case ZombieSkillProperty_Fireball: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Fireball, sizeof(g_ZombieSkillProperty_Fireball), zbSkill);
 		}
 	}
 
@@ -1002,6 +1073,7 @@ void Init(HMODULE hModule)
 	g_bUseSSL = CommandLine()->CheckParm("-usessl");
 	g_bWriteMetadata = CommandLine()->CheckParm("-writemetadata");
 	g_bLoadZBSkillFromFile = CommandLine()->CheckParm("-loadzbskillfromfile");
+	g_bLoadAllStarFromFile = CommandLine()->CheckParm("-loadallstarfromfile");
 	g_bNoNGHook = CommandLine()->CheckParm("-nonghook");
 
 	printf("g_pServerIP = %s, g_pServerPort = %s\n", g_pServerIP, g_pServerPort);
