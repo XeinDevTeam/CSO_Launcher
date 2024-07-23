@@ -234,29 +234,34 @@ bool LoadCsv(int* _this, const char* filename, unsigned char* defaultBuf, int de
 	long size = 0;
 	if (g_bLoadAllStarFromFile)
 	{
-		FILE* f = fopen(allStarSkill ? "AllStar_Skill.csv" : "AllStar_Status", "rb");
-		if (!f)
+		const char* allStarFileName = allStarSkill ? "AllStar_Skill-Dedi.csv" : "AllStar_Status-Dedi.csv";
+
+		std::fstream fs(allStarFileName, std::ios::binary | std::ios::in);
+		if (!fs.is_open())
 		{
+			printf("%s: not found\n", allStarFileName);
 			return g_pfnCreateStringTable(_this, filename);
 		}
 
-		fseek(f, 0, SEEK_END);
-		size = ftell(f);
-		fseek(f, 0, SEEK_SET);
+		fs.seekp(0, std::ios::end);
+		size = fs.tellp();
+		fs.seekp(0, std::ios::beg);
 
 		if (size <= 0)
 		{
+			printf("%s: size == 0\n", allStarFileName);
 			return g_pfnCreateStringTable(_this, filename);
 		}
 
-		buffer = (unsigned char*)malloc(size + 1);
+		buffer = (unsigned char*)malloc(size);
 		if (!buffer)
 		{
+			printf("%s: failed to malloc\n", allStarFileName);
 			return g_pfnCreateStringTable(_this, filename);
 		}
 
-		fread(buffer, 1, size, f);
-		fclose(f);
+		fs.read((char*)buffer, size);
+		fs.close();
 	}
 	else
 	{
