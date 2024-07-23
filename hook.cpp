@@ -11,6 +11,7 @@
 #define MAX_ZIP_SIZE	(1024 * 1024 * 16 )
 #include "XZip.h"
 
+#include <fstream>
 #include <vector>
 #include <string>
 #include <unordered_map>
@@ -342,29 +343,32 @@ bool LoadJsonFromFile(std::string* filename, std::string* oriBuf, unsigned char*
 	long size = 0;
 	if (g_bLoadZBSkillFromFile)
 	{
-		FILE* f = fopen(zbSkill.c_str(), "r");
-		if (!f)
+		std::fstream fs(zbSkill.c_str(), std::ios::binary | std::ios::in);
+		if (!fs.is_open())
 		{
+			printf("%s: not found\n", zbSkill.c_str());
 			return g_pfnLoadJson(filename, oriBuf);
 		}
 
-		fseek(f, 0, SEEK_END);
-		size = ftell(f);
-		fseek(f, 0, SEEK_SET);
+		fs.seekp(0, std::ios::end);
+		size = fs.tellp();
+		fs.seekp(0, std::ios::beg);
 
 		if (size <= 0)
 		{
+			printf("%s: size == 0\n", zbSkill.c_str());
 			return g_pfnLoadJson(filename, oriBuf);
 		}
 
 		buffer = (unsigned char*)malloc(size);
 		if (!buffer)
 		{
+			printf("%s: failed to malloc\n", zbSkill.c_str());
 			return g_pfnLoadJson(filename, oriBuf);
 		}
 
-		fread(buffer, 1, size, f);
-		fclose(f);
+		fs.read((char*)buffer, size);
+		fs.close();
 	}
 	else
 	{
