@@ -228,18 +228,16 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	return CallWindowProc(oWndProc, hWnd, uMsg, wParam, lParam);
 }
 
-bool LoadCsv(int* _this, const char* filename, unsigned char* defaultBuf, int defaultBufSize, bool allStarSkill)
+bool LoadCsv(int* _this, const char* filename, unsigned char* defaultBuf, int defaultBufSize, bool allStar = true)
 {
 	unsigned char* buffer = NULL;
 	long size = 0;
-	if (g_bLoadAllStarFromFile)
+	if (allStar ? g_bLoadAllStarFromFile : g_bLoadZBSkillFromFile)
 	{
-		const char* allStarFileName = allStarSkill ? "allstar/AllStar_Skill-Dedi.csv" : "allstar/AllStar_Status-Dedi.csv";
-
-		std::fstream fs(allStarFileName, std::ios::binary | std::ios::in);
+		std::fstream fs(filename, std::ios::binary | std::ios::in);
 		if (!fs.is_open())
 		{
-			printf("%s: not found\n", allStarFileName);
+			printf("%s: not found\n", filename);
 			return g_pfnCreateStringTable(_this, filename);
 		}
 
@@ -249,14 +247,14 @@ bool LoadCsv(int* _this, const char* filename, unsigned char* defaultBuf, int de
 
 		if (size <= 0)
 		{
-			printf("%s: size == 0\n", allStarFileName);
+			printf("%s: size == 0\n", filename);
 			return g_pfnCreateStringTable(_this, filename);
 		}
 
 		buffer = (unsigned char*)malloc(size);
 		if (!buffer)
 		{
-			printf("%s: failed to malloc\n", allStarFileName);
+			printf("%s: failed to malloc\n", filename);
 			return g_pfnCreateStringTable(_this, filename);
 		}
 
@@ -282,11 +280,15 @@ bool __fastcall CreateStringTable(int* _this, int shit, const char* filename)
 {
 	if (!strcmp(filename, "resource/allstar/AllStar_Status-Dedi.csv"))
 	{
-		return LoadCsv(_this, filename, g_AllStar_Status, sizeof(g_AllStar_Status), false);
+		return LoadCsv(_this, filename, g_AllStar_Status, sizeof(g_AllStar_Status));
 	}
 	else if (!strcmp(filename, "resource/allstar/AllStar_Skill-Dedi.csv"))
 	{
-		return LoadCsv(_this, filename, g_AllStar_Skill, sizeof(g_AllStar_Skill), true);
+		return LoadCsv(_this, filename, g_AllStar_Skill, sizeof(g_AllStar_Skill));
+	}
+	else if (!strcmp(filename, "resource/zombi/FireBombOption_Dedi.csv"))
+	{
+		return LoadCsv(_this, filename, g_FireBombOption, sizeof(g_FireBombOption), false);
 	}
 
 	return g_pfnCreateStringTable(_this, filename);
@@ -342,16 +344,16 @@ std::unordered_map<std::string, zombieSkillProperty> zbSkillProp = {
 	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Fireball.csv", ZombieSkillProperty_Fireball },
 };
 
-bool LoadJsonFromFile(std::string* filename, std::string* oriBuf, unsigned char* defaultBuf, int defaultBufSize, std::string zbSkill)
+bool LoadJsonFromFile(std::string* filename, std::string* oriBuf, unsigned char* defaultBuf, int defaultBufSize)
 {
 	unsigned char* buffer = NULL;
 	long size = 0;
 	if (g_bLoadZBSkillFromFile)
 	{
-		std::fstream fs(zbSkill.c_str(), std::ios::binary | std::ios::in);
+		std::fstream fs(*filename, std::ios::binary | std::ios::in);
 		if (!fs.is_open())
 		{
-			printf("%s: not found\n", zbSkill.c_str());
+			printf("%s: not found\n", filename->c_str());
 			return g_pfnLoadJson(filename, oriBuf);
 		}
 
@@ -361,14 +363,14 @@ bool LoadJsonFromFile(std::string* filename, std::string* oriBuf, unsigned char*
 
 		if (size <= 0)
 		{
-			printf("%s: size == 0\n", zbSkill.c_str());
+			printf("%s: size == 0\n", filename->c_str());
 			return g_pfnLoadJson(filename, oriBuf);
 		}
 
 		buffer = (unsigned char*)malloc(size);
 		if (!buffer)
 		{
-			printf("%s: failed to malloc\n", zbSkill.c_str());
+			printf("%s: failed to malloc\n", filename->c_str());
 			return g_pfnLoadJson(filename, oriBuf);
 		}
 
@@ -388,36 +390,32 @@ bool LoadJsonFromFile(std::string* filename, std::string* oriBuf, unsigned char*
 
 int __stdcall LoadJson(std::string* filename, std::string* buffer)
 {
-	printf("%s\n", filename->c_str());
-
 	if (zbSkillProp.find(*filename) != zbSkillProp.end())
 	{
-		std::string zbSkill = filename->substr(15);
-
 		switch (zbSkillProp[*filename])
 		{
-		case ZombieSkillProperty_Crazy: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Crazy, sizeof(g_ZombieSkillProperty_Crazy), zbSkill);
-		case ZombieSkillProperty_JumpBuff: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_JumpBuff, sizeof(g_ZombieSkillProperty_JumpBuff), zbSkill);
-		case ZombieSkillProperty_ArmorUp: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_ArmorUp, sizeof(g_ZombieSkillProperty_ArmorUp), zbSkill);
-		case ZombieSkillProperty_Heal: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Heal, sizeof(g_ZombieSkillProperty_Heal), zbSkill);
-		case ZombieSkillProperty_ShieldBuf: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_ShieldBuf, sizeof(g_ZombieSkillProperty_ShieldBuf), zbSkill);
-		case ZombieSkillProperty_Cloacking: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Cloacking, sizeof(g_ZombieSkillProperty_Cloacking), zbSkill);
-		case ZombieSkillProperty_Trap: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Trap, sizeof(g_ZombieSkillProperty_Trap), zbSkill);
-		case ZombieSkillProperty_Smoke: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Smoke, sizeof(g_ZombieSkillProperty_Smoke), zbSkill);
-		case ZombieSkillProperty_VoodooHeal: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_VoodooHeal, sizeof(g_ZombieSkillProperty_VoodooHeal), zbSkill);
-		case ZombieSkillProperty_Shock: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Shock, sizeof(g_ZombieSkillProperty_Shock), zbSkill);
-		case ZombieSkillProperty_Rush: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Rush, sizeof(g_ZombieSkillProperty_Rush), zbSkill);
-		case ZombieSkillProperty_Pile: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Pile, sizeof(g_ZombieSkillProperty_Pile), zbSkill);
-		case ZombieSkillProperty_Bat: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Bat, sizeof(g_ZombieSkillProperty_Bat), zbSkill);
-		case ZombieSkillProperty_Stiffen: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Stiffen, sizeof(g_ZombieSkillProperty_Stiffen), zbSkill);
-		case ZombieSkillProperty_SelfDestruct: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_SelfDestruct, sizeof(g_ZombieSkillProperty_SelfDestruct), zbSkill);
-		case ZombieSkillProperty_Penetration: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Penetration, sizeof(g_ZombieSkillProperty_Penetration), zbSkill);
-		case ZombieSkillProperty_Revival: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Revival, sizeof(g_ZombieSkillProperty_Revival), zbSkill);
-		case ZombieSkillProperty_Telleport: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Telleport, sizeof(g_ZombieSkillProperty_Telleport), zbSkill);
-		case ZombieSkillProperty_Boost: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Boost, sizeof(g_ZombieSkillProperty_Boost), zbSkill);
-		case ZombieSkillProperty_BombCreate: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_BombCreate, sizeof(g_ZombieSkillProperty_BombCreate), zbSkill);
-		case ZombieSkillProperty_Flying: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Flying, sizeof(g_ZombieSkillProperty_Flying), zbSkill);
-		case ZombieSkillProperty_Fireball: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Fireball, sizeof(g_ZombieSkillProperty_Fireball), zbSkill);
+		case ZombieSkillProperty_Crazy: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Crazy, sizeof(g_ZombieSkillProperty_Crazy));
+		case ZombieSkillProperty_JumpBuff: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_JumpBuff, sizeof(g_ZombieSkillProperty_JumpBuff));
+		case ZombieSkillProperty_ArmorUp: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_ArmorUp, sizeof(g_ZombieSkillProperty_ArmorUp));
+		case ZombieSkillProperty_Heal: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Heal, sizeof(g_ZombieSkillProperty_Heal));
+		case ZombieSkillProperty_ShieldBuf: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_ShieldBuf, sizeof(g_ZombieSkillProperty_ShieldBuf));
+		case ZombieSkillProperty_Cloacking: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Cloacking, sizeof(g_ZombieSkillProperty_Cloacking));
+		case ZombieSkillProperty_Trap: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Trap, sizeof(g_ZombieSkillProperty_Trap));
+		case ZombieSkillProperty_Smoke: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Smoke, sizeof(g_ZombieSkillProperty_Smoke));
+		case ZombieSkillProperty_VoodooHeal: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_VoodooHeal, sizeof(g_ZombieSkillProperty_VoodooHeal));
+		case ZombieSkillProperty_Shock: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Shock, sizeof(g_ZombieSkillProperty_Shock));
+		case ZombieSkillProperty_Rush: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Rush, sizeof(g_ZombieSkillProperty_Rush));
+		case ZombieSkillProperty_Pile: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Pile, sizeof(g_ZombieSkillProperty_Pile));
+		case ZombieSkillProperty_Bat: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Bat, sizeof(g_ZombieSkillProperty_Bat));
+		case ZombieSkillProperty_Stiffen: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Stiffen, sizeof(g_ZombieSkillProperty_Stiffen));
+		case ZombieSkillProperty_SelfDestruct: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_SelfDestruct, sizeof(g_ZombieSkillProperty_SelfDestruct));
+		case ZombieSkillProperty_Penetration: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Penetration, sizeof(g_ZombieSkillProperty_Penetration));
+		case ZombieSkillProperty_Revival: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Revival, sizeof(g_ZombieSkillProperty_Revival));
+		case ZombieSkillProperty_Telleport: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Telleport, sizeof(g_ZombieSkillProperty_Telleport));
+		case ZombieSkillProperty_Boost: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Boost, sizeof(g_ZombieSkillProperty_Boost));
+		case ZombieSkillProperty_BombCreate: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_BombCreate, sizeof(g_ZombieSkillProperty_BombCreate));
+		case ZombieSkillProperty_Flying: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Flying, sizeof(g_ZombieSkillProperty_Flying));
+		case ZombieSkillProperty_Fireball: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Fireball, sizeof(g_ZombieSkillProperty_Fireball));
 		}
 	}
 
@@ -1193,6 +1191,13 @@ void Hook(HMODULE hModule)
 			DWORD patchAddr = pushStr - 0x2D;
 			BYTE patch[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x53, 0x8B, 0xD9, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
 			WriteMemory((void*)patchAddr, (BYTE*)patch, sizeof(patch));
+
+			pushStr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("resource/zombi/FireBombOption_Dedi.csv"));
+
+			// NOP dedi check on Fire Bomb
+			patchAddr = pushStr - 0x14;
+			BYTE patch2[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x8B, 0xF0, 0x89, 0x75, 0xD8, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
+			WriteMemory((void*)patchAddr, (BYTE*)patch2, sizeof(patch2));
 
 			find = (void*)FindPattern("\x55\x8B\xEC\x53\x56\x8B\xF1\xC7\x46", "xxxxxxxxx", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 			if (!find)
