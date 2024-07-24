@@ -237,8 +237,8 @@ bool LoadCsv(int* _this, const char* filename, unsigned char* defaultBuf, int de
 		std::fstream fs(filename, std::ios::binary | std::ios::in);
 		if (!fs.is_open())
 		{
-			printf("%s: not found\n", filename);
-			return g_pfnCreateStringTable(_this, filename);
+			printf("%s: not found, loading hardcoded values...\n", filename);
+			goto LoadDefaultBuf;
 		}
 
 		fs.seekp(0, std::ios::end);
@@ -247,15 +247,15 @@ bool LoadCsv(int* _this, const char* filename, unsigned char* defaultBuf, int de
 
 		if (size <= 0)
 		{
-			printf("%s: size == 0\n", filename);
-			return g_pfnCreateStringTable(_this, filename);
+			printf("%s: size == 0, loading hardcoded values...\n", filename);
+			goto LoadDefaultBuf;
 		}
 
 		buffer = (unsigned char*)malloc(size);
 		if (!buffer)
 		{
-			printf("%s: failed to malloc\n", filename);
-			return g_pfnCreateStringTable(_this, filename);
+			printf("%s: failed to malloc, loading hardcoded values...\n", filename);
+			goto LoadDefaultBuf;
 		}
 
 		fs.read((char*)buffer, size);
@@ -263,6 +263,7 @@ bool LoadCsv(int* _this, const char* filename, unsigned char* defaultBuf, int de
 	}
 	else
 	{
+LoadDefaultBuf:
 		buffer = defaultBuf;
 		size = defaultBufSize;
 	}
@@ -353,8 +354,8 @@ bool LoadJsonFromFile(std::string* filename, std::string* oriBuf, unsigned char*
 		std::fstream fs(*filename, std::ios::binary | std::ios::in);
 		if (!fs.is_open())
 		{
-			printf("%s: not found\n", filename->c_str());
-			return g_pfnLoadJson(filename, oriBuf);
+			printf("%s: not found, loading hardcoded values...\n", filename->c_str());
+			goto LoadDefaultBuf;
 		}
 
 		fs.seekp(0, std::ios::end);
@@ -363,15 +364,15 @@ bool LoadJsonFromFile(std::string* filename, std::string* oriBuf, unsigned char*
 
 		if (size <= 0)
 		{
-			printf("%s: size == 0\n", filename->c_str());
-			return g_pfnLoadJson(filename, oriBuf);
+			printf("%s: size == 0, loading hardcoded values...\n", filename->c_str());
+			goto LoadDefaultBuf;
 		}
 
 		buffer = (unsigned char*)malloc(size);
 		if (!buffer)
 		{
-			printf("%s: failed to malloc\n", filename->c_str());
-			return g_pfnLoadJson(filename, oriBuf);
+			printf("%s: failed to malloc, loading hardcoded values...\n", filename->c_str());
+			goto LoadDefaultBuf;
 		}
 
 		fs.read((char*)buffer, size);
@@ -379,6 +380,7 @@ bool LoadJsonFromFile(std::string* filename, std::string* oriBuf, unsigned char*
 	}
 	else
 	{
+LoadDefaultBuf:
 		buffer = defaultBuf;
 		size = defaultBufSize;
 	}
