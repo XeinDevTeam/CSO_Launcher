@@ -234,7 +234,7 @@ bool LoadCsv(int* _this, const char* filename, unsigned char* defaultBuf, int de
 	long size = 0;
 	if (g_bLoadAllStarFromFile)
 	{
-		const char* allStarFileName = allStarSkill ? "AllStar_Skill-Dedi.csv" : "AllStar_Status-Dedi.csv";
+		const char* allStarFileName = allStarSkill ? "allstar/AllStar_Skill-Dedi.csv" : "allstar/AllStar_Status-Dedi.csv";
 
 		std::fstream fs(allStarFileName, std::ios::binary | std::ios::in);
 		if (!fs.is_open())
@@ -392,7 +392,7 @@ int __stdcall LoadJson(std::string* filename, std::string* buffer)
 
 	if (zbSkillProp.find(*filename) != zbSkillProp.end())
 	{
-		std::string zbSkill = filename->substr(40);
+		std::string zbSkill = filename->substr(15);
 
 		switch (zbSkillProp[*filename])
 		{
