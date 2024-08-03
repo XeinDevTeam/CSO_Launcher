@@ -29,34 +29,38 @@ DWORD g_dwMpSize;
 #define DEFAULT_IP "127.0.0.1"
 #define DEFAULT_PORT "30002"
 
-#define SOCKETMANAGER_SIG_CSNZ23 "\xE8\x00\x00\x00\x00\xEB\x02\x33\xC0\xA3\x00\x00\x00\x00\xB9\x00\x00\x00\x00"
-#define SOCKETMANAGER_MASK_CSNZ23 "x????xxxxx????x????"
+#define SOCKETMANAGER_SIG_CSNZ23 "\xE8\x00\x00\x00\x00\xEB\x00\x33\xC0\xA3\x00\x00\x00\x00\xB9"
+#define SOCKETMANAGER_MASK_CSNZ23 "x????x?xxx????x"
 
-#define SERVERCONNECT_SIG_CSNZ2019 "\x55\x8B\xEC\x6A\xFF\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\xF0\x53\x56\x57\x50\x8D\x45\xF4\x64\xA3\x00\x00\x00\x00\x8B\xF1\x8B\x4E\x04\x85\xC9\x74\x25\x8B\x01\x6A\x01\xFF\x10\x68\x00\x00\x00\x00"
-#define SERVERCONNECT_MASK_CSNZ2019 "xxxxxx????xx????xxx????x????xxxxxxxxxxxxxx????xxxxxxxxxxxxxxxx????"
+#define SERVERCONNECT_SIG_CSNZ2019 "\xE8\x00\x00\x00\x00\x85\xC0\x75\x00\x46"
+#define SERVERCONNECT_MASK_CSNZ2019 "x????xxx?x"
 
-#define PARSE_W_UDP_SIG_CSNZ "\x55\x8B\xEC\x8B\x4D\x08\x8B\x41\x04"
-#define PARSE_W_UDP_MASK_CSNZ "xxxxxxxxx"
+#define PACKET_METADATA_PARSE_SIG_CSNZ "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x57\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x8B\xF9\x89\xBD\x00\x00\x00\x00\x8B\x45\x00\x33\xF6\x89\xB5\x00\x00\x00\x00\x89\x85\x00\x00\x00\x00\x8B\x45\x00\xC7\x85\x00\x00\x00\x00\x00\x00\x00\x00\x89\xB5\x00\x00\x00\x00\x89\x85\x00\x00\x00\x00\x6A\x00\x8D\x85\x00\x00\x00\x00\x89\x75\x00\x50\x8D\x8D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x0F\xB6\x95"
+#define PACKET_METADATA_PARSE_MASK_CSNZ "xxxx?x????xx????xxx????x????xxxx?xxxxx?xx????xxxx????xx?xxxx????xx????xx?xx????????xx????xx????x?xx????xx?xxx????x????xxx"
 
-#define PACKET_METADATA_PARSE_SIG_CSNZ "\x55\x8B\xEC\x6A\xFF\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\xF0\x56\x57\x50\x8D\x45\xF4\x64\xA3\x00\x00\x00\x00\x8B\xF9\x89\xBD\x00\x00\x00\x00\x8B\x45\x08\x33\xF6\x89\xB5\x00\x00\x00\x00\x89\x85\x00\x00\x00\x00\x8B\x45\x0C\xC7\x85\x00\x00\x00\x00\x00\x00\x00\x00\x89\xB5\x00\x00\x00\x00\x89\x85\x00\x00\x00\x00\x6A\x01\x8D\x85\x00\x00\x00\x00\x89\x75\xFC\x50\x8D\x8D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x0F\xB6\x95\x00\x00\x00\x00"
-#define PACKET_METADATA_PARSE_MASK_CSNZ "xxxxxx????xx????xxx????x????xxxxxxxxxxxxx????xxxx????xxxxxxx????xx????xxxxx????????xx????xx????xxxx????xxxxxx????x????xxx????"
-#define PACKET_QUEST_PARSE_SIG_CSNZ "\x55\x8B\xEC\x6A\xFF\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x83\xEC\x2C\x53\x56\x57\xA1\x00\x00\x00\x00\x33\xC5\x50\x8D\x45\xF4\x64\xA3\x00\x00\x00\x00\x8B\xF9\x8B\x45\x08"
-#define PACKET_QUEST_PARSE_MASK_CSNZ "xxxxxx????xx????xxxxxxxx????xxxxxxxx????xxxxx"
-#define PACKET_UMSG_PARSE_SIG_CSNZ "\x55\x8B\xEC\x6A\xFF\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\xB8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\xF0\x56\x57\x50\x8D\x45\xF4\x64\xA3\x00\x00\x00\x00\x8B\xF9\x89\xBD\x00\x00\x00\x00\x8B\x45\x08\x89\x85\x00\x00\x00\x00\x8B\x45\x0C\xC7\x85\x00\x00\x00\x00\x00\x00\x00\x00\xC7\x85\x00\x00\x00\x00\x00\x00\x00\x00\x89\x85\x00\x00\x00\x00\x6A\x01\x8D\x85\x00\x00\x00\x00\xC7\x45\x00\x00\x00\x00\x00\x50\x8D\x8D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x0F\xB6\x85\x00\x00\x00\x00\x8D\x4F\x2C"
-#define PACKET_UMSG_PARSE_MASK_CSNZ "xxxxxx????xx????xx????x????x????xxxxxxxxxxxxx????xxxx????xxxxx????xxxxx????????xx????????xx????xxxx????xx?????xxx????x????xxx????xxx"
-#define PACKET_ALARM_PARSE_SIG_CSNZ "\x55\x8B\xEC\x6A\xFF\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\xF0\x53\x56\x57\x50\x8D\x45\xF4\x64\xA3\x00\x00\x00\x00\x8B\x45\x08\x33\xFF"
-#define PACKET_ALARM_PARSE_MASK_CSNZ "xxxxxx????xx????xxx????x????xxxxxxxxxxxxxx????xxxxx"
-#define PACKET_ITEM_PARSE_SIG_CSNZ "\x55\x8B\xEC\x6A\xFF\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\xF0\x56\x57\x50\x8D\x45\xF4\x64\xA3\x00\x00\x00\x00\x8B\xF1\x8B\x45\x08\xC7\x85\x00\x00\x00\x00\x00\x00\x00\x00"
-#define PACKET_ITEM_PARSE_MASK_CSNZ "xxxxxx????xx????xxx????x????xxxxxxxxxxxxx????xxxxxxx????????"
+#define PACKET_QUEST_PARSE_SIG_CSNZ "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x83\xEC\x00\x53\x56\x57\xA1\x00\x00\x00\x00\x33\xC5\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x8B\xF9\x8B\x45\x00\x89\x45\x00\x8B\x45\x00\xC7\x45\x00\x00\x00\x00\x00\xC7\x45\x00\x00\x00\x00\x00\x89\x45\x00\x6A\x00\x8D\x45\x00\xC7\x45\x00\x00\x00\x00\x00\x50\x8D\x4D\x00\xE8\x00\x00\x00\x00\x0F\xB6\x45\x00\x89\x47\x00\xE8\x00\x00\x00\x00\x8B\x47\x00\x48"
+#define PACKET_QUEST_PARSE_MASK_CSNZ "xxxx?x????xx????xxx?xxxx????xxxxx?xx????xxxx?xx?xx?xx?????xx?????xx?x?xx?xx?????xxx?x????xxx?xx?x????xx?x"
 
-#define PACKET_HOST_PTR_SIG_CSNZ "\xA1\x00\x00\x00\x00\x6A\x18\x89\x81\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x83\xC4\x04\x89\x45\xF0\xC7\x45\x00\x00\x00\x00\x00\x85\xC0\x74\x09\x8B\xC8\xE8\x00\x00\x00\x00\xEB\x02\x33\xC0\x56\x8B\xC8\xC7\x45\x00\x00\x00\x00\x00\xA3\x00\x00\x00\x00\xE8\x00\x00\x00\x00"
-#define PACKET_HOST_PTR_MASK_CSNZ "x????xxxx????x????xxxxxxxx?????xxxxxxx????xxxxxxxxx?????x????x????"
+#define PACKET_UMSG_PARSE_SIG_CSNZ "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\xB8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x57\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x8B\xF1\x89\xB5"
+#define PACKET_UMSG_PARSE_MASK_CSNZ "xxxx?x????xx????xx????x????x????xxxx?xxxxx?xx????xxxx"
+
+#define PACKET_ALARM_PARSE_SIG_CSNZ "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x57\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x8B\xF9\x89\xBD\x00\x00\x00\x00\x8B\x45\x00\xC7\x85\x00\x00\x00\x00\x00\x00\x00\x00\x89\x85\x00\x00\x00\x00\x8B\x45\x00\xC7\x85\x00\x00\x00\x00\x00\x00\x00\x00\xC7\x85\x00\x00\x00\x00\x00\x00\x00\x00\x89\x85\x00\x00\x00\x00\x6A\x00\x8D\x85\x00\x00\x00\x00\xC7\x45\x00\x00\x00\x00\x00\x50\x8D\x8D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x0F\xB6\x85\x00\x00\x00\x00\x83\xF8"
+#define PACKET_ALARM_PARSE_MASK_CSNZ "xxxx?x????xx????xxx????x????xxxx?xxxxx?xx????xxxx????xx?xx????????xx????xx?xx????????xx????????xx????x?xx????xx?????xxx????x????xxx????xx"
+
+#define PACKET_ITEM_PARSE_SIG_CSNZ "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x57\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x8B\xF1\x8B\x45\x00\xC7\x85"
+#define PACKET_ITEM_PARSE_MASK_CSNZ "xxxx?x????xx????xxx????x????xxxx?xxxxx?xx????xxxx?xx"
+
+#define PACKET_CRYPT_PARSE_SIG_CSNZ "\x55\x8B\xEC\x6A\xFF\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\xF0\x53\x56\x57\x50\x8D\x45\xF4\x64\xA3\x00\x00\x00\x00\x8B\x45\x08\x89\x85\x00\x00\x00\x00\x8B\x45\x0C\xC7\x85\x00\x00\x00\x00\x00\x00\x00\x00\xC7\x85\x00\x00\x00\x00\x00\x00\x00\x00\x89\x85\x00\x00\x00\x00\x6A\x01\x8D\x85\x00\x00\x00\x00\xC7\x45\x00\x00\x00\x00\x00\x50\x8D\x8D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x0F\xB6\x9D\x00\x00\x00\x00"
+#define PACKET_CRYPT_PARSE_MASK_CSNZ "xxxxxx????xx????xxx????x????xxxxxxxxxxxxxx????xxxxx????xxxxx????????xx????????xx????xxxx????xx?????xxx????x????xxx????"
+
+#define PACKET_HACK_PARSE_SIG_CSNZ "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x83\xEC\x00\x53\x56\x57\xA1\x00\x00\x00\x00\x33\xC5\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x8B\xD9\x89\x5D\x00\x8B\x45\x00\x89\x45\x00\x8B\x45\x00\xC7\x45\x00\x00\x00\x00\x00\xC7\x45\x00\x00\x00\x00\x00\x89\x45\x00\x6A\x00\x8D\x45\x00\xC7\x45\x00\x00\x00\x00\x00\x50\x8D\x4D\x00\xE8\x00\x00\x00\x00\x0F\xB6\x45\x00\x89\x43\x00\x83\xE8"
+#define PACKET_HACK_PARSE_MASK_CSNZ "xxxx?x????xx????xxx?xxxx????xxxxx?xx????xxxx?xx?xx?xx?xx?????xx?????xx?x?xx?xx?????xxx?x????xxx?xx?xx"
+
+#define PACKET_HACK_SEND_SIG_CSNZ "\xE8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\xEB\x00\x43\x56\x20\x20\x0D"
+#define PACKET_HACK_SEND_MASK_CSNZ "x????x????x?xxxxx"
 
 #define BOT_MANAGER_PTR_SIG_CSNZ "\xA3\x00\x00\x00\x00\xFF\x15\x00\x00\x00\x00\x83\xC4\x04\x8B\x4D\xF4"
 #define BOT_MANAGER_PTR_MASK_CSNZ "x????xx????xxxxxx"
-
-#define SHOWLOGINDLG_SIG_CSNZ "\xA1\x00\x00\x00\x00\x56\x57\x8B\xF9\x8B\x80\x00\x00\x00\x00\xFF\xD0\x8B\xF0\x8B\xCE\x8B\x16\x8B\x52\x24"
-#define SHOWLOGINDLG_MASK_CSNZ "x????xxxxxx????xxxxxxxxxxx"
 
 #define CSOMAINPANEL_PTR_SIG_CSNZ "\x8B\x0D\x00\x00\x00\x00\x6A\x01\x8B\x01\xFF\x90\x00\x00\x00\x00\x8B\x0D\x00\x00\x00\x00\x6A\x01\xE8\x00\x00\x00\x00\x8B\x03"
 #define CSOMAINPANEL_PTR_MASK_CSNZ "xx????xxxxxx????xx????xxx????xx"
@@ -64,17 +68,26 @@ DWORD g_dwMpSize;
 #define CALL_PANEL_FINDCHILDBYNAME_SIG_CSNZ "\xE8\x00\x00\x00\x00\x89\x47\xC8"
 #define CALL_PANEL_FINDCHILDBYNAME_MASK_CSNZ "x????xxx"
 
-#define CALL_BLACKCIPHER_INIT_SIG "\xE8\x00\x00\x00\x00\x84\xC0\x75\x0C\xE8\x00\x00\x00\x00"
-#define CALL_BLACKCIPHER_INIT_MASK "x????xxxxx????"
+#define NGCLIENT_INIT_SIG_CSNZ "\xE8\x00\x00\x00\x00\x84\xC0\x75\x00\xE8\x00\x00\x00\x00\x33\xC0"
+#define NGCLIENT_INIT_MASK_CSNZ "x????xxx?x????xx"
 
-#define PACKET_REPORT_PTR_FUNC_REF_SIG "\xE8\x00\x00\x00\x00\x8B\x0D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x8B\x0D\x00\x00\x00\x00\x8B\x01\xFF\x10"
-#define PACKET_REPORT_PTR_FUNC_REF_MASK "x????xx????x????xx????xxxx"
+#define NGCLIENT_QUIT_SIG_CSNZ "\xE8\x00\x00\x00\x00\x33\xC0\xE9\x00\x00\x00\x00\xEB"
+#define NGCLIENT_QUIT_MASK_CSNZ "x????xxx????x"
 
-#define PACKET_CRYPT_SIG "\x55\x8B\xEC\x6A\xFF\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\xF0\x53\x56\x57\x50\x8D\x45\xF4\x64\xA3\x00\x00\x00\x00\x8B\x45\x08\x89\x85\x00\x00\x00\x00\x8B\x45\x0C\xC7\x85\x00\x00\x00\x00\x00\x00\x00\x00\xC7\x85\x00\x00\x00\x00\x00\x00\x00\x00\x89\x85\x00\x00\x00\x00\x6A\x01\x8D\x85\x00\x00\x00\x00\xC7\x45\x00\x00\x00\x00\x00\x50\x8D\x8D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x0F\xB6\x9D\x00\x00\x00\x00"
-#define PACKET_CRYPT_MASK "xxxxxx????xx????xxx????x????xxxxxxxxxxxxxx????xxxxx????xxxxx????????xx????????xx????xxxx????xx?????xxx????x????xxx????"
+#define HOLEPUNCH_SETSERVERINFO_SIG_CSNZ "\x55\x8B\xEC\xB8\x00\x00\x00\x00\x66\xA3"
+#define HOLEPUNCH_SETSERVERINFO_MASK_CSNZ "xxxx????xx"
 
-#define PACKET_HACK_SIG "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x83\xEC\x00\x53\x56\x57\xA1\x00\x00\x00\x00\x33\xC5\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x8B\xD9\x89\x5D\x00\x8B\x45\x00\x89\x45\x00\x8B\x45\x00\xC7\x45\x00\x00\x00\x00\x00\xC7\x45\x00\x00\x00\x00\x00\x89\x45\x00\x6A\x00\x8D\x45\x00\xC7\x45\x00\x00\x00\x00\x00\x50\x8D\x4D\x00\xE8\x00\x00\x00\x00\x0F\xB6\x45\x00\x89\x43\x00\x83\xE8"
-#define PACKET_HACK_MASK "xxxx?x????xx????xxx?xxxx????xxxxx?xx????xxxx?xx?xx?xx?xx?????xx?????xx?x?xx?xx?????xxx?x????xxx?xx?xx"
+#define HOLEPUNCH_GETUSERSOCKETINFO_SIG_CSNZ "\x55\x8B\xEC\x83\xEC\x00\x57\x8B\x7D\x00\x85\xFF\x75\x00\x8B\x45"
+#define HOLEPUNCH_GETUSERSOCKETINFO_MASK_CSNZ "xxxxx?xxx?xxx?xx"
+
+#define CREATESTRINGTABLE_SIG_CSNZ "\x55\x8B\xEC\x53\x56\x8B\xF1\xC7\x46"
+#define CREATESTRINGTABLE_MASK_CSNZ "xxxxxxxxx"
+
+#define LOADJSON_SIG_CSNZ "\x55\x8B\xEC\x8B\x0D\x00\x00\x00\x00\x53\x56\x8B\x75"
+#define LOADJSON_MASK_CSNZ "xxxxx????xxxx"
+
+#define LOGTOERRORLOG_SIG_CSNZ "\x55\x8B\xEC\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x8B\x75\x00\x8D\x45\x00\x50\x6A\x00\xFF\x75\x00\x8D\x85\x00\x00\x00\x00\x68\x00\x00\x00\x00\x50\xE8\x00\x00\x00\x00\x8B\x10\xFF\x70\x00\x83\xCA\x00\x52\xFF\x15\x00\x00\x00\x00\x83\xC4"
+#define LOGTOERRORLOG_MASK_CSNZ "xxxxx????x????xxxx?xxx?xx?xx?xx?xx????x????xx????xxxx?xx?xxx????xx"
 
 char g_pServerIP[16];
 char g_pServerPort[6];
@@ -91,15 +104,12 @@ bool g_bDumpItem = false;
 bool g_bDumpCrypt = false;
 bool g_bDumpAll = false;
 bool g_bDisableAuthUI = false;
-bool g_bDumpUDP = false;
 bool g_bUseSSL = false;
 bool g_bWriteMetadata = false;
 bool g_bLoadZBSkillFromFile = false;
 bool g_bLoadAllStarFromFile = false;
 bool g_bRegister = false;
 bool g_bNoNGHook = false;
-
-void* g_pSocketManager = nullptr;
 
 cl_enginefunc_t* g_pEngine;
 
@@ -119,11 +129,6 @@ ChattingManager* g_pChattingManager;
 WNDPROC oWndProc;
 HWND hWnd;
 
-void* g_pSocketManagerConstructor;
-void* (__thiscall* g_pfnSocketManagerConstructor)(void* _this, bool useSSL);
-
-void* g_pServerConnect;
-
 int(__thiscall* g_pfnGameUI_RunFrame)(void* _this);
 
 typedef void* (__thiscall* tPanel_FindChildByName)(void* _this, const char* name, bool recurseDown);
@@ -132,42 +137,8 @@ tPanel_FindChildByName g_pfnPanel_FindChildByName;
 typedef int(__thiscall* tLoginDlg_OnCommand)(void* _this, const char* command);
 tLoginDlg_OnCommand g_pfnLoginDlg_OnCommand;
 
-typedef bool(__thiscall* tCreateStringTable)(int* _this, const char* filename);
-tCreateStringTable g_pfnCreateStringTable;
-
 typedef void(__thiscall* tParseCSV)(int* _this, unsigned char* buffer, int size);
 tParseCSV g_pfnParseCSV;
-
-typedef int(__stdcall* tLoadJson)(std::string* filename, std::string* buffer);
-tLoadJson g_pfnLoadJson;
-
-void* g_pPacket_Metadata_Parse;
-int(__thiscall* g_pfnPacket_Metadata_Parse)(void* _this, void* packetBuffer, int packetSize);
-
-void* g_pPacket_Quest_Parse;
-int(__thiscall* g_pfnPacket_Quest_Parse)(void* _this, void* packetBuffer, int packetSize);
-
-void* g_pPacket_UMsg_Parse;
-int(__thiscall* g_pfnPacket_UMsg_Parse)(void* _this, void* packetBuffer, int packetSize);
-
-void* g_pPacket_Alarm_Parse;
-int(__thiscall* g_pfnPacket_Alarm_Parse)(void* _this, void* packetBuffer, int packetSize);
-
-void* g_pPacket_Item_Parse;
-int(__thiscall* g_pfnPacket_Item_Parse)(void* _this, void* packetBuffer, int packetSize);
-
-void* g_pPacket_Crypt_Parse;
-int(__thiscall* g_pfnPacket_Crypt_Parse)(void* _this, void* packetBuffer, int packetSize);
-
-void* g_pPacket_Host;
-typedef int(__thiscall* tPacket_Host_Parse)(void* _this, void* packetBuffer, int packetSize);
-tPacket_Host_Parse g_pfnPacket_Host_Parse;
-
-const char*(__thiscall* g_pfnGetCryptoProtocolName)(void* _this);
-
-void* (__thiscall* g_pfnSocketConstructor)(int _this, int a2, int a3, char a4);
-
-int (__thiscall* g_pfnSocket_Read)(void* _this, char* outBuf, int len, void* a4, bool initialMsg);
 
 typedef void*(*tEVP_CIPHER_CTX_new)();
 tEVP_CIPHER_CTX_new g_pfnEVP_CIPHER_CTX_new;
@@ -202,9 +173,9 @@ void Pbuf_AddText(const char* text)
 	g_pEngine->pfnClientCmd((char*)text);
 }
 
-void* __fastcall SockMgr(void* __this, int reg, bool useSSL)
+CreateHookClass(void*, SocketManagerConstructor, bool useSSL)
 {
-	return g_pfnSocketManagerConstructor(__this, g_bUseSSL);
+	return g_pfnSocketManagerConstructor(ptr, g_bUseSSL);
 }
 
 CreateHookClass(int, ServerConnect, unsigned long ip, unsigned short port, bool validate)
@@ -277,22 +248,22 @@ LoadDefaultBuf:
 	return result;
 }
 
-bool __fastcall CreateStringTable(int* _this, int shit, const char* filename)
+CreateHookClassType(bool, CreateStringTable, int, const char* filename)
 {
 	if (!strcmp(filename, "resource/allstar/AllStar_Status-Dedi.csv"))
 	{
-		return LoadCsv(_this, filename, g_AllStar_Status, sizeof(g_AllStar_Status));
+		return LoadCsv(ptr, filename, g_AllStar_Status, sizeof(g_AllStar_Status));
 	}
 	else if (!strcmp(filename, "resource/allstar/AllStar_Skill-Dedi.csv"))
 	{
-		return LoadCsv(_this, filename, g_AllStar_Skill, sizeof(g_AllStar_Skill));
+		return LoadCsv(ptr, filename, g_AllStar_Skill, sizeof(g_AllStar_Skill));
 	}
 	else if (!strcmp(filename, "resource/zombi/FireBombOption_Dedi.csv"))
 	{
-		return LoadCsv(_this, filename, g_FireBombOption, sizeof(g_FireBombOption), false);
+		return LoadCsv(ptr, filename, g_FireBombOption, sizeof(g_FireBombOption), false);
 	}
 
-	return g_pfnCreateStringTable(_this, filename);
+	return g_pfnCreateStringTable(ptr, filename);
 }
 
 enum zombieSkillProperty {
@@ -390,7 +361,7 @@ LoadDefaultBuf:
 	return 1;
 }
 
-int __stdcall LoadJson(std::string* filename, std::string* buffer)
+CreateHook(__stdcall, int, LoadJson, std::string* filename, std::string* buffer)
 {
 	if (zbSkillProp.find(*filename) != zbSkillProp.end())
 	{
@@ -505,20 +476,7 @@ const char* GetBinMetadataName(int metaDataID)
 }
 
 #pragma region Packet
-
-class Packet
-{
-public:
-	int unk;
-	void* ptr;
-	void* ptr2;
-	int unk1;
-	int unk2;
-	int unk3;
-	int unk4;
-};
-
-int __fastcall Packet_Metadata_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
+CreateHookClass(int, Packet_Metadata_Parse, void* packetBuffer, int packetSize)
 {
 	if (g_bIgnoreMetadata)
 	{
@@ -582,7 +540,7 @@ int __fastcall Packet_Metadata_Parse(Packet* _this, int a2, void* packetBuffer, 
 		if (!hMetaData)
 		{
 			printf("CreateZip returned NULL.\n");
-			return g_pfnPacket_Metadata_Parse(_this, packetBuffer, packetSize);
+			return g_pfnPacket_Metadata_Parse(ptr, packetBuffer, packetSize);
 		}
 
 		char path[MAX_PATH];
@@ -592,7 +550,7 @@ int __fastcall Packet_Metadata_Parse(Packet* _this, int a2, void* packetBuffer, 
 		if (ZipAdd(hMetaData, metaDataName, path, 0, ZIP_FILENAME))
 		{
 			printf("ZipAdd returned error.\n");
-			return g_pfnPacket_Metadata_Parse(_this, packetBuffer, packetSize);
+			return g_pfnPacket_Metadata_Parse(ptr, packetBuffer, packetSize);
 		}
 
 		void* buffer;
@@ -602,7 +560,7 @@ int __fastcall Packet_Metadata_Parse(Packet* _this, int a2, void* packetBuffer, 
 		if (length == 0)
 		{
 			printf("ZipGetMemory returned zero length.\n");
-			return g_pfnPacket_Metadata_Parse(_this, packetBuffer, packetSize);
+			return g_pfnPacket_Metadata_Parse(ptr, packetBuffer, packetSize);
 		}
 
 		std::vector<unsigned char> destBuffer;
@@ -615,10 +573,10 @@ int __fastcall Packet_Metadata_Parse(Packet* _this, int a2, void* packetBuffer, 
 
 		CloseZip(hMetaData);
 
-		return g_pfnPacket_Metadata_Parse(_this, static_cast<void*>(destBuffer.data()), destBuffer.size());
+		return g_pfnPacket_Metadata_Parse(ptr, static_cast<void*>(destBuffer.data()), destBuffer.size());
 	}
 
-	return g_pfnPacket_Metadata_Parse(_this, packetBuffer, packetSize);
+	return g_pfnPacket_Metadata_Parse(ptr, packetBuffer, packetSize);
 }
 
 int counter = 0;
@@ -643,50 +601,37 @@ void DumpPacket(const char* packetName, void* packetBuffer, int packetSize)
 	}
 }
 
-int __fastcall Packet_Quest_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
+CreateHookClass(int, Packet_Quest_Parse, void* packetBuffer, int packetSize)
 {
-	DumpPacket("Quest", packetBuffer, packetSize);
-	return g_pfnPacket_Quest_Parse(_this, packetBuffer, packetSize);
+	DumpPacket("QuestDump", packetBuffer, packetSize);
+	return g_pfnPacket_Quest_Parse(ptr, packetBuffer, packetSize);
 }
 
-int __fastcall Packet_UMsg_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
+CreateHookClass(int, Packet_UMsg_Parse, void* packetBuffer, int packetSize)
 {
-	DumpPacket("UMsg", packetBuffer, packetSize);
-	return g_pfnPacket_UMsg_Parse(_this, packetBuffer, packetSize);
+	DumpPacket("UMsgDump", packetBuffer, packetSize);
+	return g_pfnPacket_UMsg_Parse(ptr, packetBuffer, packetSize);
 }
 
-int __fastcall Packet_Alarm_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
+CreateHookClass(int, Packet_Alarm_Parse, void* packetBuffer, int packetSize)
 {
-	DumpPacket("Alarm", packetBuffer, packetSize);
-	return g_pfnPacket_Alarm_Parse(_this, packetBuffer, packetSize);
+	DumpPacket("AlarmDump", packetBuffer, packetSize);
+	return g_pfnPacket_Alarm_Parse(ptr, packetBuffer, packetSize);
 }
 
-int __fastcall Packet_Item_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
+CreateHookClass(int, Packet_Item_Parse, void* packetBuffer, int packetSize)
 {
-	DumpPacket("Item", packetBuffer, packetSize);
-	return g_pfnPacket_Item_Parse(_this, packetBuffer, packetSize);
+	DumpPacket("ItemDump", packetBuffer, packetSize);
+	return g_pfnPacket_Item_Parse(ptr, packetBuffer, packetSize);
 }
 
-int __fastcall Packet_Crypt_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
+CreateHookClass(int, Packet_Crypt_Parse, void* packetBuffer, int packetSize)
 {
-	DumpPacket("Crypt", packetBuffer, packetSize);
-	return g_pfnPacket_Crypt_Parse(_this, packetBuffer, packetSize);
+	DumpPacket("CryptDump", packetBuffer, packetSize);
+	return g_pfnPacket_Crypt_Parse(ptr, packetBuffer, packetSize);
 }
 
-int __fastcall Packet_Host_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
-{
-	char subType = *(char*)packetBuffer;
-	printf("%d\n", subType);
-	if (subType == 1 || subType == 5)
-	{
-		// replace packet buffer with our modified
-		return false;
-	}
-
-	return g_pfnPacket_Host_Parse(_this, packetBuffer, packetSize);
-}
-
-int __fastcall Packet_Hack_Parse(Packet* _this, int a2, void* packetBuffer, int packetSize)
+int __fastcall Hook_Packet_Hack_Parse(void* _this, int a2, void* packetBuffer, int packetSize)
 {
 	return 1;
 }
@@ -845,29 +790,29 @@ void CSO_Bot_Add()
 	g_pBotManager->Bot_Add(arg1);
 }
 
-const char* __fastcall GetCryptoProtocolName(void* _this)
+CreateHookClass(const char*, GetCryptoProtocolName)
 {
 	if (g_bUseSSL)
 	{
-		return g_pfnGetCryptoProtocolName(_this);
+		return g_pfnGetCryptoProtocolName(ptr);
 	}
 
 	return "None";
 }
 
-void* __fastcall SocketConstructor(int _this, int reg, int a2, int a3, char a4)
+CreateHookClassType(void*, SocketConstructor, int, int a2, int a3, char a4)
 {
-	*(DWORD*)(_this + 72) = (DWORD)g_pfnEVP_CIPHER_CTX_new();
-	*(DWORD*)(_this + 76) = (DWORD)g_pfnEVP_CIPHER_CTX_new();
-	*(DWORD*)(_this + 80) = (DWORD)g_pfnEVP_CIPHER_CTX_new();
-	*(DWORD*)(_this + 84) = (DWORD)g_pfnEVP_CIPHER_CTX_new();
+	*(DWORD*)((int)ptr + 72) = (DWORD)g_pfnEVP_CIPHER_CTX_new();
+	*(DWORD*)((int)ptr + 76) = (DWORD)g_pfnEVP_CIPHER_CTX_new();
+	*(DWORD*)((int)ptr + 80) = (DWORD)g_pfnEVP_CIPHER_CTX_new();
+	*(DWORD*)((int)ptr + 84) = (DWORD)g_pfnEVP_CIPHER_CTX_new();
 
-	return g_pfnSocketConstructor(_this, a2, a3, a4);
+	return g_pfnSocketConstructor(ptr, a2, a3, a4);
 }
 
-int __fastcall Socket_Read(void* _this, int reg, char* outBuf, int len, unsigned short *outLen, bool initialMsg)
+CreateHookClass(int, Socket_Read, char* outBuf, int len, unsigned short* outLen, bool initialMsg)
 {
-	int result = g_pfnSocket_Read(_this, outBuf, len, outLen, initialMsg);
+	int result = g_pfnSocket_Read(ptr, outBuf, len, outLen, initialMsg);
 
 	// this + 0x34 - read buf
 
@@ -1078,7 +1023,6 @@ void Init(HMODULE hModule)
 	g_bDumpAll = CommandLine()->CheckParm("-dumpall");
 	g_bDumpCrypt = CommandLine()->CheckParm("-dumpcrypt");
 	g_bDisableAuthUI = CommandLine()->CheckParm("-disableauthui");
-	g_bDumpUDP = CommandLine()->CheckParm("-dumpudp");
 	g_bUseSSL = CommandLine()->CheckParm("-usessl");
 	g_bWriteMetadata = CommandLine()->CheckParm("-writemetadata");
 	g_bLoadZBSkillFromFile = CommandLine()->CheckParm("-loadzbskillfromfile");
@@ -1092,23 +1036,24 @@ void Hook(HMODULE hModule)
 {
 	Init(hModule);
 
+	DWORD find = NULL;
 	void* dummy = NULL;
 	
 	if (!g_bNoNGHook)
 	{
-		DWORD find = FindPattern("\xE8\x00\x00\x00\x00\x84\xC0\x75\x00\xE8\x00\x00\x00\x00\x33\xC0", "x????xxx?x????xx", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		find = FindPattern(NGCLIENT_INIT_SIG_CSNZ, NGCLIENT_INIT_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 		if (!find)
 			MessageBox(NULL, "NGClient_Init == NULL!!!", "Error", MB_OK);
 		else
 			InlineHookFromCallOpcode((void*)find, NGClient_Return1, dummy, dummy);
 
-		find = FindPattern("\xE8\x00\x00\x00\x00\x33\xC0\xE9\x00\x00\x00\x00\xEB", "x????xxx????x", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		find = FindPattern(NGCLIENT_QUIT_SIG_CSNZ, NGCLIENT_QUIT_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 		if (!find)
 			MessageBox(NULL, "NGClient_Quit == NULL!!!", "Error", MB_OK);
 		else
 			InlineHookFromCallOpcode((void*)find, NGClient_Void, dummy, dummy);
 
-		find = FindPattern("\xE8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\xEB\x00\x43\x56\x20\x20\x0D", "x????x????x?xxxxx", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		find = FindPattern(PACKET_HACK_SEND_SIG_CSNZ, PACKET_HACK_SEND_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 		if (!find)
 			MessageBox(NULL, "Packet_Hack_Send == NULL!!!", "Error", MB_OK);
 		else
@@ -1117,11 +1062,11 @@ void Hook(HMODULE hModule)
 			InlineHookFromCallOpcode((void*)(find + 0x5), NGClient_Return1, dummy, dummy);
 		}
 
-		find = FindPattern(PACKET_HACK_SIG, PACKET_HACK_MASK, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		find = FindPattern(PACKET_HACK_PARSE_SIG_CSNZ, PACKET_HACK_PARSE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 		if (!find)
-			MessageBox(NULL, "Packet_Hack_Receive == NULL!!!", "Error", MB_OK);
+			MessageBox(NULL, "Packet_Hack_Parse == NULL!!!", "Error", MB_OK);
 		else
-			InlineHook((void*)find, Packet_Hack_Parse, dummy);
+			InlineHook((void*)find, Hook_Packet_Hack_Parse, dummy);
 	}
 
 	IATHook(g_hEngineModule, "nxgsm.dll", "InitializeGameLogManagerA", NXGSM_Dummy, dummy);
@@ -1129,37 +1074,32 @@ void Hook(HMODULE hModule)
 	IATHook(g_hEngineModule, "nxgsm.dll", "WriteErrorLogA", NXGSM_WriteErrorLogA, dummy);
 	IATHook(g_hEngineModule, "nxgsm.dll", "FinalizeGameLogManager", NXGSM_Dummy, dummy);
 	IATHook(g_hEngineModule, "nxgsm.dll", "SetUserSN", NXGSM_Dummy, dummy);
-	if (g_bDumpUDP)
-	{
-		//InlineHook(GetProcAddress(GetModuleHandleA("WSOCK32.dll"), "recvfrom"), h_Recvfrom, (void*&)g_pfnRecvfrom);
-		//InlineHook(GetProcAddress(GetModuleHandleA("WSOCK32.dll"), "sendto"), h_Sendto, (void*&)g_pfnSendto);
-	}
 
 	if (!g_bUseOriginalServer)
 	{
-		DWORD dwCallSocketMgrInitAddr = FindPattern(SOCKETMANAGER_SIG_CSNZ23, SOCKETMANAGER_MASK_CSNZ23, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-		if (!dwCallSocketMgrInitAddr)
-			MessageBox(NULL, "dwCallSocketMgrInitAddr == NULL!!!", "Error", MB_OK);
+		find = FindPattern(SOCKETMANAGER_SIG_CSNZ23, SOCKETMANAGER_MASK_CSNZ23, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!find)
+			MessageBox(NULL, "SocketManagerConstructor == NULL!!!", "Error", MB_OK);
 		else
-			InlineHookFromCallOpcode((void*)dwCallSocketMgrInitAddr, SockMgr, (void*&)g_pfnSocketManagerConstructor, dummy);
+			InlineHookFromCallOpcode((void*)find, Hook_SocketManagerConstructor, (void*&)g_pfnSocketManagerConstructor, dummy);
 
-		g_pServerConnect = (void*)FindPattern(SERVERCONNECT_SIG_CSNZ2019, SERVERCONNECT_MASK_CSNZ2019, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-		if (!g_pServerConnect)
-			MessageBox(NULL, "g_pServerConnect == NULL!!!", "Error", MB_OK);
+		find = FindPattern(SERVERCONNECT_SIG_CSNZ2019, SERVERCONNECT_MASK_CSNZ2019, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!find)
+			MessageBox(NULL, "ServerConnect == NULL!!!", "Error", MB_OK);
 		else
-			InlineHook(g_pServerConnect, Hook_ServerConnect, (void*&)g_pfnServerConnect);
+			InlineHookFromCallOpcode((void*)find, Hook_ServerConnect, (void*&)g_pfnServerConnect, dummy);
 
-		auto find = (void*)FindPattern("\x55\x8B\xEC\xB8\x00\x00\x00\x00\x66\xA3", "xxxx????xx", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		find = FindPattern(HOLEPUNCH_SETSERVERINFO_SIG_CSNZ, HOLEPUNCH_SETSERVERINFO_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 		if (!find)
 			MessageBox(NULL, "HolePunch__SetServerInfo == NULL!!!", "Error", MB_OK);
 		else
-			InlineHook(find, Hook_HolePunch__SetServerInfo, (void*&)g_pfnHolePunch__SetServerInfo);
+			InlineHook((void*)find, Hook_HolePunch__SetServerInfo, (void*&)g_pfnHolePunch__SetServerInfo);
 
-		find = (void*)FindPattern("\x55\x8B\xEC\x83\xEC\x00\x57\x8B\x7D\x00\x85\xFF\x75\x00\x8B\x45", "xxxxx?xxx?xxx?xx", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		find = FindPattern(HOLEPUNCH_GETUSERSOCKETINFO_SIG_CSNZ, HOLEPUNCH_GETUSERSOCKETINFO_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 		if (!find)
 			MessageBox(NULL, "HolePunch__GetUserSocketInfo == NULL!!!", "Error", MB_OK);
 		else
-			InlineHook(find, Hook_HolePunch__GetUserSocketInfo, (void*&)g_pfnHolePunch__GetUserSocketInfo);
+			InlineHook((void*)find, Hook_HolePunch__GetUserSocketInfo, (void*&)g_pfnHolePunch__GetUserSocketInfo);
 
 		/*
 		{
@@ -1201,31 +1141,28 @@ void Hook(HMODULE hModule)
 			BYTE patch2[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x8B, 0xF0, 0x89, 0x75, 0xD8, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
 			WriteMemory((void*)patchAddr, (BYTE*)patch2, sizeof(patch2));
 
-			find = (void*)FindPattern("\x55\x8B\xEC\x53\x56\x8B\xF1\xC7\x46", "xxxxxxxxx", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+			find = FindPattern(CREATESTRINGTABLE_SIG_CSNZ, CREATESTRINGTABLE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 			if (!find)
-				MessageBox(NULL, "g_pfnCreateStringTable == NULL!!!", "Error", MB_OK);
+				MessageBox(NULL, "CreateStringTable == NULL!!!", "Error", MB_OK);
 			else
-				InlineHook(find, CreateStringTable, (void*&)g_pfnCreateStringTable);
+				InlineHook((void*)find, Hook_CreateStringTable, (void*&)g_pfnCreateStringTable);
 
 			DWORD parseCsvCallAddr = (DWORD)find + 0x71 + 1; // 0x71
 			g_pfnParseCSV = (tParseCSV)(parseCsvCallAddr + 4 + *(DWORD*)parseCsvCallAddr);
 
-			find = (void*)FindPattern("\x55\x8B\xEC\x8B\x0D\x00\x00\x00\x00\x53\x56\x8B\x75", "xxxxx????xxxx", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+			find = FindPattern(LOADJSON_SIG_CSNZ, LOADJSON_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 			if (!find)
-				MessageBox(NULL, "g_pfnLoadJson == NULL!!!", "Error", MB_OK);
+				MessageBox(NULL, "LoadJson == NULL!!!", "Error", MB_OK);
 			else
-				InlineHook(find, LoadJson, (void*&)g_pfnLoadJson);
+				InlineHook((void*)find, Hook_LoadJson, (void*&)g_pfnLoadJson);
 		}
 	}
 
-	//printf("EngineBase: %p\n", g_dwEngineBase);
-
-	auto addr = (void*)FindPattern("\x55\x8B\xEC\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x8B\x75\x00\x8D\x45\x00\x50\x6A\x00\xFF\x75\x00\x8D\x85\x00\x00\x00\x00\x68\x00\x00\x00\x00\x50\xE8\x00\x00\x00\x00\x8B\x10\xFF\x70\x00\x83\xCA\x00\x52\xFF\x15\x00\x00\x00\x00\x83\xC4", "xxxxx????x????xxxx?xxx?xx?xx?xx?xx????x????xx????xxxx?xx?xxx????xx", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-	//printf("%p\n", addr);
-	if (!addr)
+	find = FindPattern(LOGTOERRORLOG_SIG_CSNZ, LOGTOERRORLOG_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+	if (!find)
 		MessageBox(NULL, "LogToErrorLog == NULL!!!", "Error", MB_OK);
 	else
-		InlineHook(addr, Hook_LogToErrorLog, (void*&)g_pfnLogToErrorLog);
+		InlineHook((void*)find, Hook_LogToErrorLog, (void*&)g_pfnLogToErrorLog);
 
 	g_pEngine = (cl_enginefunc_t*)(PVOID) * (PDWORD)(FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("ScreenFade")) + 0x0D);
 	if (!g_pEngine)
@@ -1234,103 +1171,103 @@ void Hook(HMODULE hModule)
 	// hook Pbuf_AddText to allow any cvar or cmd input from console
 	g_pEngine->Pbuf_AddText = Pbuf_AddText;
 
-	g_pPacket_Metadata_Parse = (void*)FindPattern(PACKET_METADATA_PARSE_SIG_CSNZ, PACKET_METADATA_PARSE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-	if (g_bDumpMetadata || g_bWriteMetadata)
+	if (g_bDumpMetadata || g_bWriteMetadata || g_bIgnoreMetadata)
 	{
-		if (!g_pPacket_Metadata_Parse)
-			MessageBox(NULL, "g_pPacket_Metadata_Parse == NULL!!!", "Error", MB_OK);
+		find = FindPattern(PACKET_METADATA_PARSE_SIG_CSNZ, PACKET_METADATA_PARSE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!find)
+			MessageBox(NULL, "Packet_Metadata_Parse == NULL!!!", "Error", MB_OK);
 		else
-			InlineHook(g_pPacket_Metadata_Parse, Packet_Metadata_Parse, (void*&)g_pfnPacket_Metadata_Parse);
+			InlineHook((void*)find, Hook_Packet_Metadata_Parse, (void*&)g_pfnPacket_Metadata_Parse);
 	}
 
 	if (g_bDumpQuest)
 	{
-		g_pPacket_Quest_Parse = (void*)FindPattern(PACKET_QUEST_PARSE_SIG_CSNZ, PACKET_QUEST_PARSE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-		if (!g_pPacket_Quest_Parse)
-			MessageBox(NULL, "g_pPacket_Quest_Parse == NULL!!!", "Error", MB_OK);
+		find = FindPattern(PACKET_QUEST_PARSE_SIG_CSNZ, PACKET_QUEST_PARSE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!find)
+			MessageBox(NULL, "Packet_Quest_Parse == NULL!!!", "Error", MB_OK);
 		else
-			InlineHook(g_pPacket_Quest_Parse, Packet_Quest_Parse, (void*&)g_pfnPacket_Quest_Parse);
+			InlineHook((void*)find, Hook_Packet_Quest_Parse, (void*&)g_pfnPacket_Quest_Parse);
 	}
 
 	if (g_bDumpUMsg)
 	{
-		g_pPacket_UMsg_Parse = (void*)FindPattern(PACKET_UMSG_PARSE_SIG_CSNZ, PACKET_UMSG_PARSE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-		if (!g_pPacket_UMsg_Parse)
-			MessageBox(NULL, "g_pPacket_UMsg_Parse == NULL!!!", "Error", MB_OK);
+		find = FindPattern(PACKET_UMSG_PARSE_SIG_CSNZ, PACKET_UMSG_PARSE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!find)
+			MessageBox(NULL, "Packet_UMsg_Parse == NULL!!!", "Error", MB_OK);
 		else
-			InlineHook(g_pPacket_UMsg_Parse, Packet_UMsg_Parse, (void*&)g_pfnPacket_UMsg_Parse);
+			InlineHook((void*)find, Hook_Packet_UMsg_Parse, (void*&)g_pfnPacket_UMsg_Parse);
 	}
 
 	if (g_bDumpAlarm)
 	{
-		g_pPacket_Alarm_Parse = (void*)FindPattern(PACKET_ALARM_PARSE_SIG_CSNZ, PACKET_ALARM_PARSE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-		if (!g_pPacket_Alarm_Parse)
-			MessageBox(NULL, "g_pPacket_Alarm_Parse == NULL!!!", "Error", MB_OK);
+		find = FindPattern(PACKET_ALARM_PARSE_SIG_CSNZ, PACKET_ALARM_PARSE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!find)
+			MessageBox(NULL, "Packet_Alarm_Parse == NULL!!!", "Error", MB_OK);
 		else
-			InlineHook(g_pPacket_Alarm_Parse, Packet_Alarm_Parse, (void*&)g_pfnPacket_Alarm_Parse);
+			InlineHook((void*)find, Hook_Packet_Alarm_Parse, (void*&)g_pfnPacket_Alarm_Parse);
 	}
 
 	if (g_bDumpItem)
 	{
-		g_pPacket_Item_Parse = (void*)FindPattern(PACKET_ITEM_PARSE_SIG_CSNZ, PACKET_ITEM_PARSE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-		if (!g_pPacket_Item_Parse)
-			MessageBox(NULL, "g_pPacket_Item_Parse == NULL!!!", "Error", MB_OK);
+		find = FindPattern(PACKET_ITEM_PARSE_SIG_CSNZ, PACKET_ITEM_PARSE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!find)
+			MessageBox(NULL, "Packet_Item_Parse == NULL!!!", "Error", MB_OK);
 		else
-			InlineHook(g_pPacket_Item_Parse, Packet_Item_Parse, (void*&)g_pfnPacket_Item_Parse);
+			InlineHook((void*)find, Hook_Packet_Item_Parse, (void*&)g_pfnPacket_Item_Parse);
 	}
 
 	if (g_bDumpCrypt)
 	{
-		g_pPacket_Crypt_Parse = (void*)FindPattern(PACKET_CRYPT_SIG, PACKET_CRYPT_MASK, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-		if (!g_pPacket_Crypt_Parse)
-			MessageBox(NULL, "g_pPacket_Crypt_Parse == NULL!!!", "Error", MB_OK);
+		find = FindPattern(PACKET_CRYPT_PARSE_SIG_CSNZ, PACKET_CRYPT_PARSE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!find)
+			MessageBox(NULL, "Packet_Crypt_Parse == NULL!!!", "Error", MB_OK);
 		else
-			InlineHook(g_pPacket_Crypt_Parse, Packet_Crypt_Parse, (void*&)g_pfnPacket_Crypt_Parse);
+			InlineHook((void*)find, Hook_Packet_Crypt_Parse, (void*&)g_pfnPacket_Crypt_Parse);
 	}
 
 	if (g_bDumpAll)
 	{
-		DWORD dwCallAddr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("SocketManager - Initial ReadPacket() failed. (return = %d)\n")) - 0x10;
-		if (dwCallAddr == -0x10)
+		find = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("SocketManager - Initial ReadPacket() failed. (return = %d)\n")) - 0x10;
+		if (find == -0x10)
 			MessageBox(NULL, "dwCallAddr == 0!!!", "Error", MB_OK);
 		else
-			InlineHookFromCallOpcode((void*)dwCallAddr, Socket_Read, (void*&)g_pfnSocket_Read, dummy);
+			InlineHookFromCallOpcode((void*)find, Hook_Socket_Read, (void*&)g_pfnSocket_Read, dummy);
 	}
 
 	// patch launcher name in hw.dll to fix annoying message box (length of launcher filename must be < original name)
-	DWORD strAddr = FindPattern("cstrike-online.exe", strlen("cstrike-online.exe"), g_dwEngineBase, g_dwEngineBase + g_dwEngineSize);
-	if (strAddr)
+	find = FindPattern("cstrike-online.exe", strlen("cstrike-online.exe"), g_dwEngineBase, g_dwEngineBase + g_dwEngineSize);
+	if (find)
 	{
-		WriteMemory((void*)strAddr, (BYTE*)"CSOLauncher.exe", strlen("CSOLauncher.exe") + 1);
+		WriteMemory((void*)find, (BYTE*)"CSOLauncher.exe", strlen("CSOLauncher.exe") + 1);
 	}
 
 	if (!g_bUseOriginalServer)
 	{
 		// hook GetCryptoProtocolName func to make Crypt work
-		DWORD dwCallAddr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("CRYPT_ERROR"));
-		if (dwCallAddr)
+		find = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("CRYPT_ERROR"));
+		if (find)
 		{
-			dwCallAddr -= 0x117;
+			find -= 0x117;
 
-			InlineHookFromCallOpcode((void*)dwCallAddr, GetCryptoProtocolName, (void*&)g_pfnGetCryptoProtocolName, dummy);
+			InlineHookFromCallOpcode((void*)find, Hook_GetCryptoProtocolName, (void*&)g_pfnGetCryptoProtocolName, dummy);
 		}
 
 		// hook socket constructor to create ctx objects even if we don't use ssl
 		if (!g_bUseSSL)
 		{
-			dwCallAddr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("new socket()>>"));
-			if (dwCallAddr)
+			find = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("new socket()>>"));
+			if (find)
 			{
-				dwCallAddr += 0x62;
+				find += 0x62;
 
-				InlineHookFromCallOpcode((void*)dwCallAddr, SocketConstructor, (void*&)g_pfnSocketConstructor, dummy);
+				InlineHookFromCallOpcode((void*)find, Hook_SocketConstructor, (void*&)g_pfnSocketConstructor, dummy);
 
-				dwCallAddr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("SSL: Failed to load Client's Private Key"), 2);
-				if (dwCallAddr)
+				find = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("SSL: Failed to load Client's Private Key"), 2);
+				if (find)
 				{
-					dwCallAddr -= 0x1F;
+					find -= 0x1F;
 
-					DWORD dwCreateCtxAddr = dwCallAddr + 1;
+					DWORD dwCreateCtxAddr = find + 1;
 					g_pfnEVP_CIPHER_CTX_new = (tEVP_CIPHER_CTX_new)(dwCreateCtxAddr + 4 + *(DWORD*)dwCreateCtxAddr);
 				}
 
