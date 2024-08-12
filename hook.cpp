@@ -59,8 +59,8 @@ DWORD g_dwMpSize;
 #define PACKET_HACK_SEND_SIG_CSNZ "\xE8\x00\x00\x00\x00\xE8\x00\x00\x00\x00\xEB\x00\x43\x56\x20\x20\x0D"
 #define PACKET_HACK_SEND_MASK_CSNZ "x????x????x?xxxxx"
 
-#define BOT_MANAGER_PTR_SIG_CSNZ "\xA3\x00\x00\x00\x00\xFF\x15\x00\x00\x00\x00\x83\xC4\x04\x8B\x4D\xF4"
-#define BOT_MANAGER_PTR_MASK_CSNZ "x????xx????xxxxxx"
+#define BOT_MANAGER_PTR_SIG_CSNZ "\xA3\x00\x00\x00\x00\xC7\x45\x00\x00\x00\x00\x00\xFF\x15\x00\x00\x00\x00\x83\xC4"
+#define BOT_MANAGER_PTR_MASK_CSNZ "x????xx?????xx????xx"
 
 #define CSOMAINPANEL_PTR_SIG_CSNZ "\x8B\x0D\x00\x00\x00\x00\x6A\x01\x8B\x01\xFF\x90\x00\x00\x00\x00\x8B\x0D\x00\x00\x00\x00\x6A\x01\xE8\x00\x00\x00\x00\x8B\x03"
 #define CSOMAINPANEL_PTR_MASK_CSNZ "xx????xxxxxx????xx????xxx????xx"
@@ -108,6 +108,8 @@ bool g_bUseSSL = false;
 bool g_bWriteMetadata = false;
 bool g_bLoadZBSkillFromFile = false;
 bool g_bLoadAllStarFromFile = false;
+bool g_bLoadModeEventFromFile = false;
+bool g_bLoadZombie5FromFile = false;
 bool g_bRegister = false;
 bool g_bNoNGHook = false;
 
@@ -199,11 +201,91 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 	return CallWindowProc(oWndProc, hWnd, uMsg, wParam, lParam);
 }
 
-bool LoadCsv(int* _this, const char* filename, unsigned char* defaultBuf, int defaultBufSize, bool allStar = true)
+enum dediCsvType {
+	AllStar_Skill,
+	AllStar_Status,
+	LastStand,
+	ProtectionSupplyWeapon,
+	RandomRule,
+	ZSRogueLiteAbility,
+	ZSTransform_Skill,
+	ZSTransform_Status,
+	FireBombOption,
+	ZombieSkillProperty_Crazy,
+	ZombieSkillProperty_JumpBuff,
+	ZombieSkillProperty_ArmorUp,
+	ZombieSkillProperty_Heal,
+	ZombieSkillProperty_ShieldBuf,
+	ZombieSkillProperty_Cloacking,
+	ZombieSkillProperty_Trap,
+	ZombieSkillProperty_Smoke,
+	ZombieSkillProperty_VoodooHeal,
+	ZombieSkillProperty_Shock,
+	ZombieSkillProperty_Rush,
+	ZombieSkillProperty_Pile,
+	ZombieSkillProperty_Bat,
+	ZombieSkillProperty_Stiffen,
+	ZombieSkillProperty_SelfDestruct,
+	ZombieSkillProperty_Penetration,
+	ZombieSkillProperty_Revival,
+	ZombieSkillProperty_Telleport,
+	ZombieSkillProperty_Boost,
+	ZombieSkillProperty_BombCreate,
+	ZombieSkillProperty_Flying,
+	ZombieSkillProperty_Fireball,
+	HumanAbilityData,
+	HumanAbilityProbData,
+	SpecialZombieProb,
+	VirusFactorReq,
+	ZombiVariSkillData,
+	ZombiVirusBonus
+};
+
+std::unordered_map<std::string, dediCsvType> dediCsv = {
+	{ "resource/allstar/AllStar_Skill-Dedi.csv", AllStar_Skill },
+	{ "resource/allstar/AllStar_Status-Dedi.csv", AllStar_Status },
+	{ "resource/ModeEvent/LastStand_Dedi.csv", LastStand },
+	{ "resource/ModeEvent/ProtectionSupplyWeapon_Dedi.csv", ProtectionSupplyWeapon },
+	{ "resource/ModeEvent/RandomRule_Dedi.csv", RandomRule },
+	{ "resource/ModeEvent/ZSRogueLiteAbility_Dedi.csv", ZSRogueLiteAbility },
+	{ "resource/ModeEvent/ZSTransform_Skill-Dedi.csv", ZSTransform_Skill },
+	{ "resource/ModeEvent/ZSTransform_Status-Dedi.csv", ZSTransform_Status },
+	{ "resource/zombi/FireBombOption_Dedi.csv", FireBombOption },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Crazy.csv", ZombieSkillProperty_Crazy },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_JumpBuff.csv", ZombieSkillProperty_JumpBuff },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_ArmorUp.csv", ZombieSkillProperty_ArmorUp },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Heal.csv", ZombieSkillProperty_Heal },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_ShieldBuf.csv", ZombieSkillProperty_ShieldBuf },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Cloacking.csv", ZombieSkillProperty_Cloacking },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Trap.csv", ZombieSkillProperty_Trap },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Smoke.csv", ZombieSkillProperty_Smoke },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_VoodooHeal.csv", ZombieSkillProperty_VoodooHeal },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Shock.csv", ZombieSkillProperty_Shock },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Rush.csv", ZombieSkillProperty_Rush },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Pile.csv", ZombieSkillProperty_Pile },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Bat.csv", ZombieSkillProperty_Bat },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Stiffen.csv", ZombieSkillProperty_Stiffen },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_SelfDestruct.csv", ZombieSkillProperty_SelfDestruct },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Penetration.csv", ZombieSkillProperty_Penetration },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Revival.csv", ZombieSkillProperty_Revival },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Telleport.csv", ZombieSkillProperty_Telleport },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Boost.csv", ZombieSkillProperty_Boost },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_BombCreate.csv", ZombieSkillProperty_BombCreate },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Flying.csv", ZombieSkillProperty_Flying },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Fireball.csv", ZombieSkillProperty_Fireball },
+	{ "resource/zombi5/HumanAbilityData_Dedi.csv", HumanAbilityData },
+	{ "resource/zombi5/HumanAbilityProbData_Dedi.csv", HumanAbilityProbData },
+	{ "resource/zombi5/SpecialZombieProb_Dedi.csv", SpecialZombieProb },
+	{ "resource/zombi5/VirusFactorReq_Dedi.csv", VirusFactorReq },
+	{ "resource/zombi5/ZombiVariSkillData_Dedi.csv", ZombiVariSkillData },
+	{ "resource/zombi5/ZombiVirusBonus_Dedi.csv", ZombiVirusBonus }
+};
+
+bool LoadCsv(int* _this, const char* filename, unsigned char* defaultBuf, int defaultBufSize, bool loadFromFile)
 {
 	unsigned char* buffer = NULL;
 	long size = 0;
-	if (allStar ? g_bLoadAllStarFromFile : g_bLoadZBSkillFromFile)
+	if (loadFromFile)
 	{
 		std::fstream fs(filename, std::ios::binary | std::ios::in);
 		if (!fs.is_open())
@@ -234,7 +316,7 @@ bool LoadCsv(int* _this, const char* filename, unsigned char* defaultBuf, int de
 	}
 	else
 	{
-LoadDefaultBuf:
+	LoadDefaultBuf:
 		buffer = defaultBuf;
 		size = defaultBufSize;
 	}
@@ -250,71 +332,30 @@ LoadDefaultBuf:
 
 CreateHookClassType(bool, CreateStringTable, int, const char* filename)
 {
-	if (!strcmp(filename, "resource/allstar/AllStar_Status-Dedi.csv"))
+	if (dediCsv.find(filename) != dediCsv.end())
 	{
-		return LoadCsv(ptr, filename, g_AllStar_Status, sizeof(g_AllStar_Status));
-	}
-	else if (!strcmp(filename, "resource/allstar/AllStar_Skill-Dedi.csv"))
-	{
-		return LoadCsv(ptr, filename, g_AllStar_Skill, sizeof(g_AllStar_Skill));
-	}
-	else if (!strcmp(filename, "resource/zombi/FireBombOption_Dedi.csv"))
-	{
-		return LoadCsv(ptr, filename, g_FireBombOption, sizeof(g_FireBombOption), false);
+		switch (dediCsv[filename])
+		{
+		case AllStar_Skill: return LoadCsv(ptr, filename, g_AllStar_Skill, sizeof(g_AllStar_Skill), g_bLoadAllStarFromFile);
+		case AllStar_Status: return LoadCsv(ptr, filename, g_AllStar_Status, sizeof(g_AllStar_Status), g_bLoadAllStarFromFile);
+		case LastStand: return LoadCsv(ptr, filename, g_LastStand, sizeof(g_LastStand), g_bLoadModeEventFromFile);
+		case ProtectionSupplyWeapon: return LoadCsv(ptr, filename, g_ProtectionSupplyWeapon, sizeof(g_ProtectionSupplyWeapon), g_bLoadModeEventFromFile);
+		case RandomRule: return LoadCsv(ptr, filename, g_RandomRule, sizeof(g_RandomRule), g_bLoadModeEventFromFile);
+		case ZSRogueLiteAbility: return LoadCsv(ptr, filename, g_ZSRogueLiteAbility, sizeof(g_ZSRogueLiteAbility), g_bLoadModeEventFromFile);
+		case ZSTransform_Skill: return LoadCsv(ptr, filename, g_ZSTransform_Skill, sizeof(g_ZSTransform_Skill), g_bLoadModeEventFromFile);
+		case ZSTransform_Status: return LoadCsv(ptr, filename, g_ZSTransform_Status, sizeof(g_ZSTransform_Status), g_bLoadModeEventFromFile);
+		case FireBombOption: return LoadCsv(ptr, filename, g_FireBombOption, sizeof(g_FireBombOption), g_bLoadZBSkillFromFile);
+		case HumanAbilityData: return LoadCsv(ptr, filename, g_HumanAbilityData, sizeof(g_HumanAbilityData), g_bLoadZombie5FromFile);
+		case HumanAbilityProbData: return LoadCsv(ptr, filename, g_HumanAbilityProbData, sizeof(g_HumanAbilityProbData), g_bLoadZombie5FromFile);
+		case SpecialZombieProb: return LoadCsv(ptr, filename, g_SpecialZombieProb, sizeof(g_SpecialZombieProb), g_bLoadZombie5FromFile);
+		case VirusFactorReq: return LoadCsv(ptr, filename, g_VirusFactorReq, sizeof(g_VirusFactorReq), g_bLoadZombie5FromFile);
+		case ZombiVariSkillData: return LoadCsv(ptr, filename, g_ZombiVariSkillData, sizeof(g_ZombiVariSkillData), g_bLoadZombie5FromFile);
+		case ZombiVirusBonus: return LoadCsv(ptr, filename, g_ZombiVirusBonus, sizeof(g_ZombiVirusBonus), g_bLoadZombie5FromFile);
+		}
 	}
 
 	return g_pfnCreateStringTable(ptr, filename);
 }
-
-enum zombieSkillProperty {
-	ZombieSkillProperty_Crazy,
-	ZombieSkillProperty_JumpBuff,
-	ZombieSkillProperty_ArmorUp,
-	ZombieSkillProperty_Heal,
-	ZombieSkillProperty_ShieldBuf,
-	ZombieSkillProperty_Cloacking,
-	ZombieSkillProperty_Trap,
-	ZombieSkillProperty_Smoke,
-	ZombieSkillProperty_VoodooHeal,
-	ZombieSkillProperty_Shock,
-	ZombieSkillProperty_Rush,
-	ZombieSkillProperty_Pile,
-	ZombieSkillProperty_Bat,
-	ZombieSkillProperty_Stiffen,
-	ZombieSkillProperty_SelfDestruct,
-	ZombieSkillProperty_Penetration,
-	ZombieSkillProperty_Revival,
-	ZombieSkillProperty_Telleport,
-	ZombieSkillProperty_Boost,
-	ZombieSkillProperty_BombCreate,
-	ZombieSkillProperty_Flying,
-	ZombieSkillProperty_Fireball
-};
-
-std::unordered_map<std::string, zombieSkillProperty> zbSkillProp = {
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Crazy.csv", ZombieSkillProperty_Crazy },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_JumpBuff.csv", ZombieSkillProperty_JumpBuff },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_ArmorUp.csv", ZombieSkillProperty_ArmorUp },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Heal.csv", ZombieSkillProperty_Heal },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_ShieldBuf.csv", ZombieSkillProperty_ShieldBuf },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Cloacking.csv", ZombieSkillProperty_Cloacking },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Trap.csv", ZombieSkillProperty_Trap },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Smoke.csv", ZombieSkillProperty_Smoke },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_VoodooHeal.csv", ZombieSkillProperty_VoodooHeal },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Shock.csv", ZombieSkillProperty_Shock },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Rush.csv", ZombieSkillProperty_Rush },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Pile.csv", ZombieSkillProperty_Pile },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Bat.csv", ZombieSkillProperty_Bat },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Stiffen.csv", ZombieSkillProperty_Stiffen },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_SelfDestruct.csv", ZombieSkillProperty_SelfDestruct },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Penetration.csv", ZombieSkillProperty_Penetration },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Revival.csv", ZombieSkillProperty_Revival },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Telleport.csv", ZombieSkillProperty_Telleport },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Boost.csv", ZombieSkillProperty_Boost },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_BombCreate.csv", ZombieSkillProperty_BombCreate },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Flying.csv", ZombieSkillProperty_Flying },
-	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Fireball.csv", ZombieSkillProperty_Fireball },
-};
 
 bool LoadJsonFromFile(std::string* filename, std::string* oriBuf, unsigned char* defaultBuf, int defaultBufSize)
 {
@@ -363,9 +404,9 @@ LoadDefaultBuf:
 
 CreateHook(__stdcall, int, LoadJson, std::string* filename, std::string* buffer)
 {
-	if (zbSkillProp.find(*filename) != zbSkillProp.end())
+	if (dediCsv.find(*filename) != dediCsv.end())
 	{
-		switch (zbSkillProp[*filename])
+		switch (dediCsv[*filename])
 		{
 		case ZombieSkillProperty_Crazy: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Crazy, sizeof(g_ZombieSkillProperty_Crazy));
 		case ZombieSkillProperty_JumpBuff: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_JumpBuff, sizeof(g_ZombieSkillProperty_JumpBuff));
@@ -457,6 +498,10 @@ const char* GetCSVMetadataName(int metaDataID)
 		return "ModeEvent.csv";
 	case 51:
 		return "EventShop.csv";
+	case 52:
+		return "FamilyTotalWarMap.csv";
+	case 53:
+		return "FamilyTotalWar.json";
 	}
 	return NULL;
 }
@@ -742,7 +787,7 @@ int __fastcall GameUI_RunFrame(void* _this)
 				//(*(void(__stdcall**)(void*, int, int))(*(DWORD*)pRegisterBtn + 4))(pRegisterBtn, 50, 141); // button->SetPos()
 				(*(void(__thiscall**)(void*, bool))(*(DWORD*)pFindIDBtn + 160))(pFindIDBtn, false); // button->SetVisible()
 				(*(void(__thiscall**)(void*, bool))(*(DWORD*)pFindPWBtn + 160))(pFindPWBtn, false); // button->SetVisible()
-				(*(void(__thiscall**)(void*, const char*))(*(DWORD*)pRegisterBtn + 612))(pRegisterBtn, "Register"); // button->SetText() // before 23.12.23 pRegisterBtn + 604 // on 10.07.2024 pRegisterBtn + 612
+				(*(void(__thiscall**)(void*, const char*))(*(DWORD*)pRegisterBtn + 620))(pRegisterBtn, "Register"); // button->SetText() // before 23.12.23 pRegisterBtn + 604 // on 10.07.2024 pRegisterBtn + 612 // on 07.08.2024 pRegisterBtn + 620
 				//(*(void(__thiscall**)(void*, const char*))(*(DWORD*)pImagePanel1 + 600))(pImagePanel1, "resource/login.tga"); // imagepanel->SetImage()
 				(*(void(__thiscall**)(void*))(*(DWORD*)pLoginDlg + 840))(pLoginDlg); // loginDlg->DoModal() // before 23.12.23 pLoginDlg + 832 // on 10.07.2024 pLoginDlg + 840
 
@@ -770,13 +815,13 @@ void CSO_Bot_Add()
 {
 	// get current botmgr ptr
 	DWORD dwBotManagerPtr = FindPattern(BOT_MANAGER_PTR_SIG_CSNZ, BOT_MANAGER_PTR_MASK_CSNZ, g_dwMpBase, g_dwMpBase + g_dwMpSize, 1);
-	g_pBotManager = **((CCSBotManager***)(dwBotManagerPtr));
-
-	if (!g_pBotManager)
+	if (!dwBotManagerPtr)
 	{
-		g_pEngine->Con_Printf("CSO_Bot_Add: g_pBotManager == NULL\n");
+		g_pEngine->Con_Printf("CSO_Bot_Add: dwBotManagerPtr == NULL\n");
 		return;
 	}
+	g_pBotManager = **((CCSBotManager***)(dwBotManagerPtr));
+
 	int arg1 = 0, arg2 = 0;
 	int argc = g_pEngine->Cmd_Argc();
 	if (argc > 0)
@@ -1027,6 +1072,8 @@ void Init(HMODULE hModule)
 	g_bWriteMetadata = CommandLine()->CheckParm("-writemetadata");
 	g_bLoadZBSkillFromFile = CommandLine()->CheckParm("-loadzbskillfromfile");
 	g_bLoadAllStarFromFile = CommandLine()->CheckParm("-loadallstarfromfile");
+	g_bLoadModeEventFromFile = CommandLine()->CheckParm("-loadmodeventfromfile");
+	g_bLoadZombie5FromFile = CommandLine()->CheckParm("-loadzombie5fromfile");
 	g_bNoNGHook = CommandLine()->CheckParm("-nonghook");
 
 	printf("g_pServerIP = %s, g_pServerPort = %s\n", g_pServerIP, g_pServerPort);
