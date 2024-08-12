@@ -1072,7 +1072,7 @@ void Init(HMODULE hModule)
 	g_bWriteMetadata = CommandLine()->CheckParm("-writemetadata");
 	g_bLoadZBSkillFromFile = CommandLine()->CheckParm("-loadzbskillfromfile");
 	g_bLoadAllStarFromFile = CommandLine()->CheckParm("-loadallstarfromfile");
-	g_bLoadModeEventFromFile = CommandLine()->CheckParm("-loadmodeventfromfile");
+	g_bLoadModeEventFromFile = CommandLine()->CheckParm("-loadmodeeventfromfile");
 	g_bLoadZombie5FromFile = CommandLine()->CheckParm("-loadzombie5fromfile");
 	g_bNoNGHook = CommandLine()->CheckParm("-nonghook");
 
