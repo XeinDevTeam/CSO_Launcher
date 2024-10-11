@@ -233,11 +233,17 @@ enum dediCsvType {
 	ZombieSkillProperty_BombCreate,
 	ZombieSkillProperty_Flying,
 	ZombieSkillProperty_Fireball,
+	ZombieSkillProperty_DogShoot,
+	ZombieSkillProperty_ViolentRush,
+	ZombieSkillProperty_WebShooter,
+	ZombieSkillProperty_WebBomb,
+	ZombieSkillProperty_Protect,
+	ZombieSkillProperty_ChargeSlash,
+	ZombieSkillProperty_Claw,
 	HumanAbilityData,
 	HumanAbilityProbData,
 	SpecialZombieProb,
 	VirusFactorReq,
-	ZombiVariSkillData,
 	ZombiVirusBonus
 };
 
@@ -273,11 +279,17 @@ std::unordered_map<std::string, dediCsvType> dediCsv = {
 	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_BombCreate.csv", ZombieSkillProperty_BombCreate },
 	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Flying.csv", ZombieSkillProperty_Flying },
 	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Fireball.csv", ZombieSkillProperty_Fireball },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_DogShoot.csv", ZombieSkillProperty_DogShoot },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_ViolentRush.csv", ZombieSkillProperty_ViolentRush },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_WebShooter.csv", ZombieSkillProperty_WebShooter },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_WebBomb.csv", ZombieSkillProperty_WebBomb },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Protect.csv", ZombieSkillProperty_Protect },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_ChargeSlash.csv", ZombieSkillProperty_ChargeSlash },
+	{ "resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Claw.csv", ZombieSkillProperty_Claw },
 	{ "resource/zombi5/HumanAbilityData_Dedi.csv", HumanAbilityData },
 	{ "resource/zombi5/HumanAbilityProbData_Dedi.csv", HumanAbilityProbData },
 	{ "resource/zombi5/SpecialZombieProb_Dedi.csv", SpecialZombieProb },
 	{ "resource/zombi5/VirusFactorReq_Dedi.csv", VirusFactorReq },
-	{ "resource/zombi5/ZombiVariSkillData_Dedi.csv", ZombiVariSkillData },
 	{ "resource/zombi5/ZombiVirusBonus_Dedi.csv", ZombiVirusBonus }
 };
 
@@ -349,7 +361,6 @@ CreateHookClassType(bool, CreateStringTable, int, const char* filename)
 		case HumanAbilityProbData: return LoadCsv(ptr, filename, g_HumanAbilityProbData, sizeof(g_HumanAbilityProbData), g_bLoadZombie5FromFile);
 		case SpecialZombieProb: return LoadCsv(ptr, filename, g_SpecialZombieProb, sizeof(g_SpecialZombieProb), g_bLoadZombie5FromFile);
 		case VirusFactorReq: return LoadCsv(ptr, filename, g_VirusFactorReq, sizeof(g_VirusFactorReq), g_bLoadZombie5FromFile);
-		case ZombiVariSkillData: return LoadCsv(ptr, filename, g_ZombiVariSkillData, sizeof(g_ZombiVariSkillData), g_bLoadZombie5FromFile);
 		case ZombiVirusBonus: return LoadCsv(ptr, filename, g_ZombiVirusBonus, sizeof(g_ZombiVirusBonus), g_bLoadZombie5FromFile);
 		}
 	}
@@ -430,6 +441,13 @@ CreateHook(__stdcall, int, LoadJson, std::string* filename, std::string* buffer)
 		case ZombieSkillProperty_BombCreate: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_BombCreate, sizeof(g_ZombieSkillProperty_BombCreate));
 		case ZombieSkillProperty_Flying: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Flying, sizeof(g_ZombieSkillProperty_Flying));
 		case ZombieSkillProperty_Fireball: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Fireball, sizeof(g_ZombieSkillProperty_Fireball));
+		case ZombieSkillProperty_DogShoot: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_DogShoot, sizeof(g_ZombieSkillProperty_DogShoot));
+		case ZombieSkillProperty_ViolentRush: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_ViolentRush, sizeof(g_ZombieSkillProperty_ViolentRush));
+		case ZombieSkillProperty_WebShooter: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_WebShooter, sizeof(g_ZombieSkillProperty_WebShooter));
+		case ZombieSkillProperty_WebBomb: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_WebBomb, sizeof(g_ZombieSkillProperty_WebBomb));
+		case ZombieSkillProperty_Protect: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Protect, sizeof(g_ZombieSkillProperty_Protect));
+		case ZombieSkillProperty_ChargeSlash: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_ChargeSlash, sizeof(g_ZombieSkillProperty_ChargeSlash));
+		case ZombieSkillProperty_Claw: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Claw, sizeof(g_ZombieSkillProperty_Claw));
 		}
 	}
 
