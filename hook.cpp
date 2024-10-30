@@ -454,7 +454,59 @@ CreateHook(__stdcall, int, LoadJson, std::string* filename, std::string* buffer)
 	return g_pfnLoadJson(filename, buffer);
 }
 
-const char* GetCSVMetadataName(int metaDataID)
+enum metaDataType
+{
+	zipMetadata,
+	binToJsonMetadata,
+	binMetadata
+};
+
+metaDataType GetMetadataType(int metaDataID)
+{
+	switch (metaDataID)
+	{
+	case 0:
+	case 1:
+	case 2:
+	case 9:
+	case 17:
+	case 18:
+	case 24:
+	case 25:
+	case 26:
+	case 27:
+	case 28:
+	case 29:
+	case 32:
+	case 33:
+	case 34:
+	case 35:
+	case 36:
+	case 37:
+	case 38:
+	case 39:
+	case 40:
+	case 41:
+	case 42:
+	case 44:
+	case 45:
+	case 46:
+	case 48:
+	case 50:
+	case 51:
+	case 52:
+	case 53:
+		return zipMetadata;
+	case 6:
+	case 15:
+	case 16:
+		return binToJsonMetadata;
+	default:
+		return binMetadata;
+	}
+}
+
+const char* GetMetadataName(int metaDataID)
 {
 	switch (metaDataID)
 	{
@@ -464,8 +516,14 @@ const char* GetCSVMetadataName(int metaDataID)
 		return "ClientTable.csv";
 	case 2:
 		return "ModeList.csv";
+	case 6:
+		return "WeaponPaints";
 	case 9:
 		return "MatchOption.csv";
+	case 15:
+		return "ZombieWarWeaponList";
+	case 16:
+		return "RandomWeaponList";
 	case 17:
 		return "weaponparts.csv";
 	case 18:
@@ -482,6 +540,8 @@ const char* GetCSVMetadataName(int metaDataID)
 		return "ReinforceMaxLv.csv";
 	case 29:
 		return "ReinforceMaxExp.csv";
+	case 30:
+		return "ReinforceItemsExp";
 	case 32:
 		return "Item.csv";
 	case 33:
@@ -524,38 +584,23 @@ const char* GetCSVMetadataName(int metaDataID)
 	return NULL;
 }
 
-const char* GetBinMetadataName(int metaDataID)
-{
-	switch (metaDataID)
-	{
-	case 6:
-		return "PaintItemList";
-	case 16:
-		return "RandomWeaponList";
-	case 30:
-		return "ReinforceItemsExp";
-	}
-	return NULL;
-}
-
 #pragma region Packet
+void* g_pPacketMetadataParse;
+
 CreateHookClass(int, Packet_Metadata_Parse, void* packetBuffer, int packetSize)
 {
+	g_pPacketMetadataParse = ptr;
+
 	if (g_bIgnoreMetadata)
 	{
 		return false;
 	}
 
 	unsigned char metaDataID = *(unsigned char*)packetBuffer;
-	printf("%d\n", metaDataID);
+	printf("Received metadata ID %d\n", metaDataID);
 
-	bool csvMetaData = true;
-	const char* metaDataName = GetCSVMetadataName(metaDataID);
-	if (!metaDataName)
-	{
-		metaDataName = GetBinMetadataName(metaDataID);
-		csvMetaData = false;
-	}
+	metaDataType metaDataType = GetMetadataType(metaDataID);
+	const char* metaDataName = GetMetadataName(metaDataID);
 
 	if (g_bDumpMetadata)
 	{
@@ -565,38 +610,183 @@ CreateHookClass(int, Packet_Metadata_Parse, void* packetBuffer, int packetSize)
 
 		CreateDirectory("MetadataDump", NULL);
 
-		if (metaDataName)
+		switch (metaDataType)
 		{
-			if (csvMetaData)
-				metaDataSize = *((unsigned short*)((char*)packetBuffer + 1));
+		case zipMetadata:
+		{
+			metaDataSize = *((unsigned short*)((char*)packetBuffer + 1));
 
-			sprintf_s(name, "MetadataDump/Metadata_%s.bin", metaDataName);
+			sprintf_s(name, "MetadataDump/Metadata_%s.zip", metaDataName);
+			break;
 		}
-		else
+		case binToJsonMetadata:
 		{
-			sprintf_s(name, "MetadataDump/Metadata_Unk%d.bin", metaDataID);
-		}
-
-		file = fopen(name, "wb");
-		if (!file)
-		{
-			printf("Can't open '%s' file to write metadata dump\n", name);
-		}
-		else
-		{
-			if (metaDataSize && csvMetaData)
+			sprintf_s(name, "MetadataDump/%s.json", metaDataName);
+			file = fopen(name, "wb");
+			if (!file)
 			{
-				fwrite(((unsigned short*)((char*)packetBuffer + 3)), metaDataSize, 1, file);
+				printf("Can't open '%s' file to write metadata dump\n", name);
 			}
 			else
 			{
-				fwrite(packetBuffer, packetSize, 1, file);
+				switch (metaDataID)
+				{
+				case 6:
+				{
+					fwrite("{\n\t\"Version\": 1,\n", 17, 1, file);
+
+					int offset = 1;
+					int size = *((unsigned short*)((char*)packetBuffer + offset)); offset += 2;
+
+					for (int i = 0; i < size; i++)
+					{
+						int weaponID = *((unsigned short*)((char*)packetBuffer + offset)); offset += 2;
+						int size2 = *((unsigned short*)((char*)packetBuffer + offset)); offset += 2;
+
+						char weaponIDStr[32];
+						int weaponIDSize = sprintf_s(weaponIDStr, "\t\"%d\": {\n\t\t\"Paints\": [\n", weaponID);
+						fwrite(weaponIDStr, weaponIDSize, 1, file);
+
+						for (int j = 0; j < size2; j++)
+						{
+							int paintID = *((unsigned short*)((char*)packetBuffer + offset)); offset += 2;
+
+							char paintIDStr[16];
+							int paintIDSize = sprintf_s(paintIDStr, "\t\t\t%d", paintID);
+							fwrite(paintIDStr, paintIDSize, 1, file);
+
+							if (size2 - 1 != j)
+								fwrite(",", 1, 1, file);
+
+							fwrite("\n", 1, 1, file);
+						}
+
+						fwrite("\t\t]\n\t}", 6, 1, file);
+
+						if (size - 1 != i)
+							fwrite(",", 1, 1, file);
+
+						fwrite("\n", 1, 1, file);
+					}
+
+					fwrite("}", 1, 1, file);
+					break;
+				}
+				case 15:
+				{
+					fwrite("{\n\t\"Version\": 1,\n\t\"Weapons\": [\n", 31, 1, file);
+
+					int offset = 1;
+					int size = *((unsigned short*)((char*)packetBuffer + offset)); offset += 2;
+
+					for (int i = 0; i < size; i++)
+					{
+						int itemID = *((unsigned long*)((char*)packetBuffer + offset)); offset += 4;
+
+						char itemIDStr[16];
+						int itemIDSize = sprintf_s(itemIDStr, "\t\t%d", itemID);
+						fwrite(itemIDStr, itemIDSize, 1, file);
+
+						if (size - 1 != i)
+							fwrite(",", 1, 1, file);
+
+						fwrite("\n", 1, 1, file);
+					}
+
+					fwrite("\t]\n}", 4, 1, file);
+					break;
+				}
+				case 16:
+				{
+					fwrite("{\n\t\"Version\": 1,\n", 17, 1, file);
+
+					int offset = 1;
+					int size = *((unsigned long*)((char*)packetBuffer + offset)); offset += 4;
+
+					for (int i = 0; i < size; i++)
+					{
+						int itemID = *((unsigned long*)((char*)packetBuffer + offset)); offset += 4;
+						int size2 = *((unsigned long*)((char*)packetBuffer + offset)); offset += 4;
+
+						char itemIDStr[16];
+						int itemIDSize = sprintf_s(itemIDStr, "\t\"%d\": {\n", itemID);
+						fwrite(itemIDStr, itemIDSize, 1, file);
+
+						for (int j = 0; j < size2; j++)
+						{
+							int modeFlag = *((unsigned char*)((char*)packetBuffer + offset)); offset++;
+							int dropRate = *((unsigned long*)((char*)packetBuffer + offset)); offset += 4;
+							int enhanceProbability = *((unsigned long*)((char*)packetBuffer + offset)); offset += 4;
+
+							char modeFlagStr[16];
+							int modeFlagSize = sprintf_s(modeFlagStr, "\t\t\"%d\": {\n", modeFlag);
+							fwrite(modeFlagStr, modeFlagSize, 1, file);
+
+							char dropRateStr[32];
+							int dropRateSize = sprintf_s(dropRateStr, "\t\t\t\"DropRate\": %d,\n", dropRate);
+							fwrite(dropRateStr, dropRateSize, 1, file);
+
+							char enhanceProbabilityStr[32];
+							int enhanceProbabilitySize = sprintf_s(enhanceProbabilityStr, "\t\t\t\"EnhanceProbability\": %d\n", enhanceProbability);
+							fwrite(enhanceProbabilityStr, enhanceProbabilitySize, 1, file);
+
+							fwrite("\t\t}", 3, 1, file);
+
+							if (size2 - 1 != j)
+								fwrite(",", 1, 1, file);
+
+							fwrite("\n", 1, 1, file);
+						}
+
+						fwrite("\t}", 2, 1, file);
+
+						if (size - 1 != i)
+							fwrite(",", 1, 1, file);
+
+						fwrite("\n", 1, 1, file);
+					}
+
+					fwrite("}", 1, 1, file);
+					break;
+				}
+				}
+				fclose(file);
 			}
-			fclose(file);
+			break;
+		}
+		case binMetadata:
+		{
+			if (metaDataName)
+				sprintf_s(name, "MetadataDump/Metadata_%s.bin", metaDataName);
+			else
+				sprintf_s(name, "MetadataDump/Metadata_Unk%d.bin", metaDataID);
+			break;
+		}
+		}
+
+		if (metaDataType != binToJsonMetadata)
+		{
+			file = fopen(name, "wb");
+			if (!file)
+			{
+				printf("Can't open '%s' file to write metadata dump\n", name);
+			}
+			else
+			{
+				if (metaDataType == zipMetadata)
+				{
+					fwrite(((unsigned short*)((char*)packetBuffer + 3)), *((unsigned short*)((char*)packetBuffer + 1)), 1, file);
+				}
+				else
+				{
+					fwrite(packetBuffer, packetSize, 1, file);
+				}
+				fclose(file);
+			}
 		}
 	}
 
-	if (g_bWriteMetadata && metaDataName != NULL)
+	if (g_bWriteMetadata && metaDataType == zipMetadata)
 	{
 		HZIP hMetaData = CreateZip(0, MAX_ZIP_SIZE, ZIP_MEMORY);
 
@@ -608,7 +798,7 @@ CreateHookClass(int, Packet_Metadata_Parse, void* packetBuffer, int packetSize)
 
 		char path[MAX_PATH];
 		sprintf(path, "Metadata/%s", metaDataName);
-		printf("%s\n", path);
+		printf("Writing metadata from %s\n", path);
 
 		if (ZipAdd(hMetaData, metaDataName, path, 0, ZIP_FILENAME))
 		{
@@ -640,6 +830,23 @@ CreateHookClass(int, Packet_Metadata_Parse, void* packetBuffer, int packetSize)
 	}
 
 	return g_pfnPacket_Metadata_Parse(ptr, packetBuffer, packetSize);
+}
+
+void Metadata_RequestAll()
+{
+	std::vector<unsigned char> destBuffer;
+
+	for (int i = 0; i < 56; i++)
+	{
+		destBuffer.push_back(0xFF);
+		destBuffer.push_back(i);
+
+		for (int j = 0; j < 16; j++)
+			destBuffer.push_back(0x00);
+
+		g_pfnPacket_Metadata_Parse(g_pPacketMetadataParse, static_cast<void*>(destBuffer.data()), destBuffer.size());
+		destBuffer.clear();
+	}
 }
 
 int counter = 0;
@@ -911,7 +1118,7 @@ CreateHookClass(int, Socket_Read, char* outBuf, int len, unsigned short* outLen,
 		static int packetCounter = 0;
 
 		char filename[MAX_PATH];
-		bool moreInfo = false;
+		bool moreInfo = true;
 		if (moreInfo)
 			snprintf(filename, sizeof(filename), "Packets/%d/Packet_%d_ID_%d_%d.bin", directoryCounter, packetCounter++, buf[0], dataLen);
 		else
@@ -986,7 +1193,6 @@ DWORD WINAPI HookThread(LPVOID lpThreadParameter)
 			g_dwGameUIBase = (DWORD)GetModuleHandle("gameui.dll");
 			Sleep(500);
 		}
-
 		g_dwGameUISize = GetModuleSize(GetModuleHandle("gameui.dll"));
 
 		g_pChattingManager = g_pEngine->GetChatManager();
@@ -1015,12 +1221,12 @@ DWORD WINAPI HookThread(LPVOID lpThreadParameter)
 			// cmp 80 7D
 			// 90 90 90 90 90 90 90 90 90 90 90 90 90 90 80 7D
 			DWORD patchAddr = pushStr - 0x1B;
-			unsigned char patch[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
-			WriteMemory((void*)patchAddr, (BYTE*)patch, 14);
+			BYTE patch[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
+			WriteMemory((void*)patchAddr, (BYTE*)patch, sizeof(patch));
 
 			pushStr = FindPush(g_dwMpBase, g_dwMpBase + g_dwMpSize, (PCHAR)("Failed to Open AllStar_Status-Dedi Table"));
 			patchAddr = pushStr - 0x1E; // or 0x1B?
-			WriteMemory((void*)patchAddr, (BYTE*)patch, 14);
+			WriteMemory((void*)patchAddr, (BYTE*)patch, sizeof(patch));
 		}
 
 		g_pEngine->pfnAddCommand("cso_bot_add", CSO_Bot_Add);
@@ -1242,7 +1448,10 @@ void Hook(HMODULE hModule)
 		if (!find)
 			MessageBox(NULL, "Packet_Metadata_Parse == NULL!!!", "Error", MB_OK);
 		else
+		{
 			InlineHook((void*)find, Hook_Packet_Metadata_Parse, (void*&)g_pfnPacket_Metadata_Parse);
+			g_pEngine->pfnAddCommand("metadata_requestall", Metadata_RequestAll);
+		}
 	}
 
 	if (g_bDumpQuest)
