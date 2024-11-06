@@ -89,6 +89,18 @@ DWORD g_dwMpSize;
 #define LOGTOERRORLOG_SIG_CSNZ "\x55\x8B\xEC\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x8B\x75\x00\x8D\x45\x00\x50\x6A\x00\xFF\x75\x00\x8D\x85\x00\x00\x00\x00\x68\x00\x00\x00\x00\x50\xE8\x00\x00\x00\x00\x8B\x10\xFF\x70\x00\x83\xCA\x00\x52\xFF\x15\x00\x00\x00\x00\x83\xC4"
 #define LOGTOERRORLOG_MASK_CSNZ "xxxxx????x????xxxx?xxx?xx?xx?xx?xx????x????xx????xxxx?xx?xxx????xx"
 
+#define READPACKET_SIG_CSNZ "\xE8\x00\x00\x00\x00\x8B\xF0\x83\xFE\x00\x77"
+#define READPACKET_MASK_CSNZ "x????xxxx?x"
+
+#define GETSSLPROTOCOLNAME_SIG_CSNZ "\xE8\x00\x00\x00\x00\xB9\x00\x00\x00\x00\x8A\x10"
+#define GETSSLPROTOCOLNAME_MASK_CSNZ "x????x????xx"
+
+#define SOCKETCONSTRUCTOR_SIG_CSNZ "\xE8\x00\x00\x00\x00\xEB\x00\x33\xC0\xC7\x45\x00\x00\x00\x00\x00\x68"
+#define SOCKETCONSTRUCTOR_MASK_CSNZ "x????x?xxxx?????x"
+
+#define EVP_CIPHER_CTX_NEW_SIG_CSNZ "\xE8\x00\x00\x00\x00\x8B\xF8\x89\xBE"
+#define EVP_CIPHER_CTX_NEW_MASK_CSNZ "x????xxxx"
+
 char g_pServerIP[16];
 char g_pServerPort[6];
 char g_pLogin[64];
@@ -185,9 +197,9 @@ CreateHookClass(int, ServerConnect, unsigned long ip, unsigned short port, bool 
 	return g_pfnServerConnect(ptr, inet_addr(g_pServerIP), htons(atoi(g_pServerPort)), validate);
 }
 
-CreateHook(__cdecl, void, HolePunch__SetServerInfo, unsigned long ip, unsigned short port)
+CreateHook(__cdecl, void, HolePunch_SetServerInfo, unsigned long ip, unsigned short port)
 {
-	g_pfnHolePunch__SetServerInfo(inet_addr(g_pServerIP), htons(atoi(g_pServerPort)));
+	g_pfnHolePunch_SetServerInfo(inet_addr(g_pServerIP), htons(atoi(g_pServerPort)));
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
@@ -1060,13 +1072,8 @@ void CSO_Bot_Add()
 	g_pBotManager->Bot_Add(arg1);
 }
 
-CreateHookClass(const char*, GetCryptoProtocolName)
+CreateHookClass(const char*, GetSSLProtocolName)
 {
-	if (g_bUseSSL)
-	{
-		return g_pfnGetCryptoProtocolName(ptr);
-	}
-
 	return "None";
 }
 
@@ -1080,9 +1087,9 @@ CreateHookClassType(void*, SocketConstructor, int, int a2, int a3, char a4)
 	return g_pfnSocketConstructor(ptr, a2, a3, a4);
 }
 
-CreateHookClass(int, Socket_Read, char* outBuf, int len, unsigned short* outLen, bool initialMsg)
+CreateHookClass(int, ReadPacket, char* outBuf, int len, unsigned short* outLen, bool initialMsg)
 {
-	int result = g_pfnSocket_Read(ptr, outBuf, len, outLen, initialMsg);
+	int result = g_pfnReadPacket(ptr, outBuf, len, outLen, initialMsg);
 
 	// this + 0x34 - read buf
 
@@ -1152,16 +1159,16 @@ CreateHook(WINAPI, void, OutputDebugStringA, LPCSTR lpOutString)
 	printf("[OutputDebugString] %s\n", lpOutString);
 }
 
-CreateHook(__cdecl, int, HolePunch__GetUserSocketInfo, int userID, char* data)
+CreateHook(__cdecl, int, HolePunch_GetUserSocketInfo, int userID, char* data)
 {
-	auto ret = g_pfnHolePunch__GetUserSocketInfo(userID, data);
+	auto ret = g_pfnHolePunch_GetUserSocketInfo(userID, data);
 
 	data[0] = 2; // unsafety method, since other places port are corrected
 
 	short port = (short&)data[14];
 	in_addr ip = (in_addr&)data[16];
 
-	printf("[HolePunch__GetUserSocketInfo] ret: %d | UserID: %d, %s:%d\n", ret, userID, inet_ntoa(ip), ntohs(port));
+	printf("[HolePunch_GetUserSocketInfo] ret: %d | UserID: %d, %s:%d\n", ret, userID, inet_ntoa(ip), ntohs(port));
 
 	return ret;
 }
@@ -1362,15 +1369,15 @@ void Hook(HMODULE hModule)
 
 		find = FindPattern(HOLEPUNCH_SETSERVERINFO_SIG_CSNZ, HOLEPUNCH_SETSERVERINFO_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 		if (!find)
-			MessageBox(NULL, "HolePunch__SetServerInfo == NULL!!!", "Error", MB_OK);
+			MessageBox(NULL, "HolePunch_SetServerInfo == NULL!!!", "Error", MB_OK);
 		else
-			InlineHook((void*)find, Hook_HolePunch__SetServerInfo, (void*&)g_pfnHolePunch__SetServerInfo);
+			InlineHook((void*)find, Hook_HolePunch_SetServerInfo, (void*&)g_pfnHolePunch_SetServerInfo);
 
 		find = FindPattern(HOLEPUNCH_GETUSERSOCKETINFO_SIG_CSNZ, HOLEPUNCH_GETUSERSOCKETINFO_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 		if (!find)
-			MessageBox(NULL, "HolePunch__GetUserSocketInfo == NULL!!!", "Error", MB_OK);
+			MessageBox(NULL, "HolePunch_GetUserSocketInfo == NULL!!!", "Error", MB_OK);
 		else
-			InlineHook((void*)find, Hook_HolePunch__GetUserSocketInfo, (void*&)g_pfnHolePunch__GetUserSocketInfo);
+			InlineHook((void*)find, Hook_HolePunch_GetUserSocketInfo, (void*&)g_pfnHolePunch_GetUserSocketInfo);
 
 		/*
 		{
@@ -1501,11 +1508,11 @@ void Hook(HMODULE hModule)
 
 	if (g_bDumpAll)
 	{
-		find = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("SocketManager - Initial ReadPacket() failed. (return = %d)\n")) - 0x10;
-		if (find == -0x10)
-			MessageBox(NULL, "dwCallAddr == 0!!!", "Error", MB_OK);
+		find = FindPattern(READPACKET_SIG_CSNZ, READPACKET_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!find)
+			MessageBox(NULL, "ReadPacket == NULL!!!", "Error", MB_OK);
 		else
-			InlineHookFromCallOpcode((void*)find, Hook_Socket_Read, (void*&)g_pfnSocket_Read, dummy);
+			InlineHookFromCallOpcode((void*)find, Hook_ReadPacket, (void*&)g_pfnReadPacket, dummy);
 	}
 
 	// patch launcher name in hw.dll to fix annoying message box (length of launcher filename must be < original name)
@@ -1515,43 +1522,29 @@ void Hook(HMODULE hModule)
 		WriteMemory((void*)find, (BYTE*)"CSOLauncher.exe", strlen("CSOLauncher.exe") + 1);
 	}
 
-	if (!g_bUseOriginalServer)
+	if (!g_bUseOriginalServer && !g_bUseSSL)
 	{
-		// hook GetCryptoProtocolName func to make Crypt work
-		find = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("CRYPT_ERROR"));
-		if (find)
+		// hook GetSSLProtocolName to make Crypt work
+		find = FindPattern(GETSSLPROTOCOLNAME_SIG_CSNZ, GETSSLPROTOCOLNAME_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!find)
+			MessageBox(NULL, "GetSSLProtocolName == NULL!!!", "Error", MB_OK);
+		else
+			InlineHookFromCallOpcode((void*)find, Hook_GetSSLProtocolName, (void*&)g_pfnGetSSLProtocolName, dummy);
+
+		// hook SocketConstructor to create ctx objects
+		find = FindPattern(SOCKETCONSTRUCTOR_SIG_CSNZ, SOCKETCONSTRUCTOR_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!find)
+			MessageBox(NULL, "SocketConstructor == NULL!!!", "Error", MB_OK);
+		else
+			InlineHookFromCallOpcode((void*)find, Hook_SocketConstructor, (void*&)g_pfnSocketConstructor, dummy);
+
+		find = FindPattern(EVP_CIPHER_CTX_NEW_SIG_CSNZ, EVP_CIPHER_CTX_NEW_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+		if (!find)
+			MessageBox(NULL, "EVP_CIPHER_CTX_new == NULL!!!", "Error", MB_OK);
+		else
 		{
-			find -= 0x117;
-
-			InlineHookFromCallOpcode((void*)find, Hook_GetCryptoProtocolName, (void*&)g_pfnGetCryptoProtocolName, dummy);
-		}
-
-		// hook socket constructor to create ctx objects even if we don't use ssl
-		if (!g_bUseSSL)
-		{
-			find = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("new socket()>>"));
-			if (find)
-			{
-				find += 0x62;
-
-				InlineHookFromCallOpcode((void*)find, Hook_SocketConstructor, (void*&)g_pfnSocketConstructor, dummy);
-
-				find = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("SSL: Failed to load Client's Private Key"), 2);
-				if (find)
-				{
-					find -= 0x1F;
-
-					DWORD dwCreateCtxAddr = find + 1;
-					g_pfnEVP_CIPHER_CTX_new = (tEVP_CIPHER_CTX_new)(dwCreateCtxAddr + 4 + *(DWORD*)dwCreateCtxAddr);
-				}
-
-				// mega unreliable solution...
-				/*DWORD callInitSSLAddr = (DWORD)dummy + 0x142 + 1;
-				DWORD initSSLAddr = callInitSSLAddr + 4 + *(DWORD*)callInitSSLAddr;
-
-				DWORD createCtxCallAddr = initSSLAddr + 0x15E + 1;
-				g_pfnEVP_CIPHER_CTX_new = (tEVP_CIPHER_CTX_new)(createCtxCallAddr + 4 + *(DWORD*)createCtxCallAddr);*/
-			}
+			DWORD dwCreateCtxAddr = find + 1;
+			g_pfnEVP_CIPHER_CTX_new = (tEVP_CIPHER_CTX_new)(dwCreateCtxAddr + 4 + *(DWORD*)dwCreateCtxAddr);
 		}
 	}
 
