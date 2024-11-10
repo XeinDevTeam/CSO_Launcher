@@ -122,6 +122,7 @@ bool g_bLoadZBSkillFromFile = false;
 bool g_bLoadAllStarFromFile = false;
 bool g_bLoadModeEventFromFile = false;
 bool g_bLoadZombie5FromFile = false;
+bool g_bLoadTDMSpawnFromFile = false;
 bool g_bRegister = false;
 bool g_bNoNGHook = false;
 
@@ -214,10 +215,12 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 }
 
 enum dediCsvType {
+	TDM_Spawn_Replacement,
 	AllStar_Skill,
 	AllStar_Status,
 	LastStand,
 	ProtectionSupplyWeapon,
+	RandomRule_Classic,
 	RandomRule,
 	ZSRogueLiteAbility,
 	ZSTransform_Skill,
@@ -260,10 +263,12 @@ enum dediCsvType {
 };
 
 std::unordered_map<std::string, dediCsvType> dediCsv = {
+	{ "maps/TDM_Spawn_Replacement_Dedi.csv", TDM_Spawn_Replacement },
 	{ "resource/allstar/AllStar_Skill-Dedi.csv", AllStar_Skill },
 	{ "resource/allstar/AllStar_Status-Dedi.csv", AllStar_Status },
 	{ "resource/ModeEvent/LastStand_Dedi.csv", LastStand },
 	{ "resource/ModeEvent/ProtectionSupplyWeapon_Dedi.csv", ProtectionSupplyWeapon },
+	{ "resource/ModeEvent/RandomRule_Classic_Dedi.csv", RandomRule_Classic },
 	{ "resource/ModeEvent/RandomRule_Dedi.csv", RandomRule },
 	{ "resource/ModeEvent/ZSRogueLiteAbility_Dedi.csv", ZSRogueLiteAbility },
 	{ "resource/ModeEvent/ZSTransform_Skill-Dedi.csv", ZSTransform_Skill },
@@ -305,6 +310,7 @@ std::unordered_map<std::string, dediCsvType> dediCsv = {
 	{ "resource/zombi5/ZombiVirusBonus_Dedi.csv", ZombiVirusBonus }
 };
 
+bool(__thiscall* g_pfnCreateStringTable)(int* ptr, const char* filename);
 bool LoadCsv(int* _this, const char* filename, unsigned char* defaultBuf, int defaultBufSize, bool loadFromFile)
 {
 	unsigned char* buffer = NULL;
@@ -314,7 +320,7 @@ bool LoadCsv(int* _this, const char* filename, unsigned char* defaultBuf, int de
 		std::fstream fs(filename, std::ios::binary | std::ios::in);
 		if (!fs.is_open())
 		{
-			printf("%s: not found, loading hardcoded values...\n", filename);
+			printf("LoadCsv: %s not found, loading hardcoded values...\n", filename);
 			goto LoadDefaultBuf;
 		}
 
@@ -324,14 +330,14 @@ bool LoadCsv(int* _this, const char* filename, unsigned char* defaultBuf, int de
 
 		if (size <= 0)
 		{
-			printf("%s: size == 0, loading hardcoded values...\n", filename);
+			printf("LoadCsv: %s size == 0, loading hardcoded values...\n", filename);
 			goto LoadDefaultBuf;
 		}
 
 		buffer = (unsigned char*)malloc(size);
 		if (!buffer)
 		{
-			printf("%s: failed to malloc, loading hardcoded values...\n", filename);
+			printf("LoadCsv: %s failed to malloc, loading hardcoded values...\n", filename);
 			goto LoadDefaultBuf;
 		}
 
@@ -345,6 +351,12 @@ bool LoadCsv(int* _this, const char* filename, unsigned char* defaultBuf, int de
 		size = defaultBufSize;
 	}
 
+	if (size <= 0 || !buffer)
+	{
+		printf("LoadCsv: %s failed to load hardcoded values, loading from filesystem...\n", filename);
+		return g_pfnCreateStringTable(_this, filename);
+	}
+
 	g_pfnParseCSV(_this, buffer, size);
 
 	bool result = 0;
@@ -354,16 +366,22 @@ bool LoadCsv(int* _this, const char* filename, unsigned char* defaultBuf, int de
 	return result;
 }
 
-CreateHookClassType(bool, CreateStringTable, int, const char* filename)
+bool __fastcall Hook_CreateStringTable(int* ptr, int reg, const char* filename)
 {
+	std::string filenameStr = filename;
+	if (filenameStr.find("maps/BoostingPoints_Dedi_") != std::string::npos)
+		return LoadCsv(ptr, filename, NULL, NULL, true);
+
 	if (dediCsv.find(filename) != dediCsv.end())
 	{
 		switch (dediCsv[filename])
 		{
+		case TDM_Spawn_Replacement: return LoadCsv(ptr, filename, g_TDM_Spawn_Replacement, sizeof(g_TDM_Spawn_Replacement), g_bLoadTDMSpawnFromFile);
 		case AllStar_Skill: return LoadCsv(ptr, filename, g_AllStar_Skill, sizeof(g_AllStar_Skill), g_bLoadAllStarFromFile);
 		case AllStar_Status: return LoadCsv(ptr, filename, g_AllStar_Status, sizeof(g_AllStar_Status), g_bLoadAllStarFromFile);
 		case LastStand: return LoadCsv(ptr, filename, g_LastStand, sizeof(g_LastStand), g_bLoadModeEventFromFile);
 		case ProtectionSupplyWeapon: return LoadCsv(ptr, filename, g_ProtectionSupplyWeapon, sizeof(g_ProtectionSupplyWeapon), g_bLoadModeEventFromFile);
+		case RandomRule_Classic: return LoadCsv(ptr, filename, g_RandomRule_Classic, sizeof(g_RandomRule_Classic), g_bLoadModeEventFromFile);
 		case RandomRule: return LoadCsv(ptr, filename, g_RandomRule, sizeof(g_RandomRule), g_bLoadModeEventFromFile);
 		case ZSRogueLiteAbility: return LoadCsv(ptr, filename, g_ZSRogueLiteAbility, sizeof(g_ZSRogueLiteAbility), g_bLoadModeEventFromFile);
 		case ZSTransform_Skill: return LoadCsv(ptr, filename, g_ZSTransform_Skill, sizeof(g_ZSTransform_Skill), g_bLoadModeEventFromFile);
@@ -380,6 +398,7 @@ CreateHookClassType(bool, CreateStringTable, int, const char* filename)
 	return g_pfnCreateStringTable(ptr, filename);
 }
 
+int(__stdcall* g_pfnLoadJson)(std::string* filename, std::string* buffer);
 bool LoadJsonFromFile(std::string* filename, std::string* oriBuf, unsigned char* defaultBuf, int defaultBufSize)
 {
 	unsigned char* buffer = NULL;
@@ -389,7 +408,7 @@ bool LoadJsonFromFile(std::string* filename, std::string* oriBuf, unsigned char*
 		std::fstream fs(*filename, std::ios::binary | std::ios::in);
 		if (!fs.is_open())
 		{
-			printf("%s: not found, loading hardcoded values...\n", filename->c_str());
+			printf("LoadJsonFromFile: %s not found, loading hardcoded values...\n", filename->c_str());
 			goto LoadDefaultBuf;
 		}
 
@@ -399,14 +418,14 @@ bool LoadJsonFromFile(std::string* filename, std::string* oriBuf, unsigned char*
 
 		if (size <= 0)
 		{
-			printf("%s: size == 0, loading hardcoded values...\n", filename->c_str());
+			printf("LoadJsonFromFile: %s size == 0, loading hardcoded values...\n", filename->c_str());
 			goto LoadDefaultBuf;
 		}
 
 		buffer = (unsigned char*)malloc(size);
 		if (!buffer)
 		{
-			printf("%s: failed to malloc, loading hardcoded values...\n", filename->c_str());
+			printf("LoadJsonFromFile: %s failed to malloc, loading hardcoded values...\n", filename->c_str());
 			goto LoadDefaultBuf;
 		}
 
@@ -420,12 +439,18 @@ LoadDefaultBuf:
 		size = defaultBufSize;
 	}
 
+	if (size <= 0 || !buffer)
+	{
+		printf("LoadJsonFromFile: %s failed to load hardcoded values, loading from filesystem...\n", filename->c_str());
+		return g_pfnLoadJson(filename, oriBuf);
+	}
+
 	*oriBuf = std::string((char*)buffer, (char*)buffer + size);
 
 	return 1;
 }
 
-CreateHook(__stdcall, int, LoadJson, std::string* filename, std::string* buffer)
+int __stdcall Hook_LoadJson(std::string* filename, std::string* buffer)
 {
 	if (dediCsv.find(*filename) != dediCsv.end())
 	{
@@ -1305,6 +1330,7 @@ void Init(HMODULE hModule)
 	g_bLoadAllStarFromFile = CommandLine()->CheckParm("-loadallstarfromfile");
 	g_bLoadModeEventFromFile = CommandLine()->CheckParm("-loadmodeeventfromfile");
 	g_bLoadZombie5FromFile = CommandLine()->CheckParm("-loadzombie5fromfile");
+	g_bLoadTDMSpawnFromFile = CommandLine()->CheckParm("-loadtdmspawnfromfile");
 	g_bNoNGHook = CommandLine()->CheckParm("-nonghook");
 
 	printf("g_pServerIP = %s, g_pServerPort = %s\n", g_pServerIP, g_pServerPort);
