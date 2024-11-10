@@ -123,6 +123,7 @@ bool g_bLoadAllStarFromFile = false;
 bool g_bLoadModeEventFromFile = false;
 bool g_bLoadZombie5FromFile = false;
 bool g_bLoadTDMSpawnFromFile = false;
+bool g_bLoadBoostingPointsFromFile = false;
 bool g_bRegister = false;
 bool g_bNoNGHook = false;
 
@@ -368,9 +369,12 @@ bool LoadCsv(int* _this, const char* filename, unsigned char* defaultBuf, int de
 
 bool __fastcall Hook_CreateStringTable(int* ptr, int reg, const char* filename)
 {
-	std::string filenameStr = filename;
-	if (filenameStr.find("maps/BoostingPoints_Dedi_") != std::string::npos)
-		return LoadCsv(ptr, filename, NULL, NULL, true);
+	if (g_bLoadBoostingPointsFromFile)
+	{
+		std::string filenameStr = filename;
+		if (filenameStr.find("maps/BoostingPoints_Dedi_") != std::string::npos)
+			return LoadCsv(ptr, filename, NULL, NULL, true);
+	}
 
 	if (dediCsv.find(filename) != dediCsv.end())
 	{
@@ -1331,6 +1335,7 @@ void Init(HMODULE hModule)
 	g_bLoadModeEventFromFile = CommandLine()->CheckParm("-loadmodeeventfromfile");
 	g_bLoadZombie5FromFile = CommandLine()->CheckParm("-loadzombie5fromfile");
 	g_bLoadTDMSpawnFromFile = CommandLine()->CheckParm("-loadtdmspawnfromfile");
+	g_bLoadBoostingPointsFromFile = CommandLine()->CheckParm("-loadboostingpointsfromfile");
 	g_bNoNGHook = CommandLine()->CheckParm("-nonghook");
 
 	printf("g_pServerIP = %s, g_pServerPort = %s\n", g_pServerIP, g_pServerPort);
