@@ -427,7 +427,7 @@ bool LoadJson(std::string* filename, std::string* oriBuf, unsigned char* default
 	if (g_bLoadDediCsvFromFile)
 	{
 		char path[MAX_PATH];
-		snprintf(path, sizeof(path), "%s/Data/%s", Sys_GetLongPathNameWithoutBin(), filename);
+		snprintf(path, sizeof(path), "%s/Data/%s", Sys_GetLongPathNameWithoutBin(), filename->c_str());
 
 		FILE* file = fopen(filename->c_str(), "rb");
 		if (!file)
