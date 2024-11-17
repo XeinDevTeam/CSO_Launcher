@@ -8,7 +8,7 @@
 #include "hook.h"
 #include <stdio.h>
 
-IFileSystem* g_pFileSystem; 
+IFileSystem* g_pFileSystem;
 
 HINTERFACEMODULE LoadFilesystemModule(void)
 {
@@ -134,7 +134,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 		if (engineAPI)
 		{
-			Hook((HMODULE)hEngine);
+			Hook((HMODULE)hEngine, (HMODULE)hFileSystem);
 			iResult = engineAPI->Run(hInstance, Sys_GetLongPathNameWithoutBin(), CommandLine()->GetCmdLine(), szNewCommandParams, Sys_GetFactoryThis(), Sys_GetFactory(hFileSystem));
 			Unhook();
 

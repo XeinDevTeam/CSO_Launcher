@@ -7,14 +7,15 @@
 #include <VGUI/IPanel.h>
 #include "DediCsv.h"
 #include "ChattingManager.h"
+#include <IFileSystem.h>
 
 #define MAX_ZIP_SIZE	(1024 * 1024 * 16 )
 #include "XZip.h"
 
-#include <fstream>
 #include <vector>
 #include <string>
 #include <unordered_map>
+#include "sys.h"
 
 HMODULE g_hEngineModule;
 DWORD g_dwEngineBase;
@@ -25,6 +26,9 @@ DWORD g_dwGameUISize;
 
 DWORD g_dwMpBase;
 DWORD g_dwMpSize;
+
+DWORD g_dwFileSystemBase;
+DWORD g_dwFileSystemSize;
 
 #define DEFAULT_IP "127.0.0.1"
 #define DEFAULT_PORT "30002"
@@ -95,8 +99,8 @@ DWORD g_dwMpSize;
 #define GETSSLPROTOCOLNAME_SIG_CSNZ "\xE8\x00\x00\x00\x00\xB9\x00\x00\x00\x00\x8A\x10"
 #define GETSSLPROTOCOLNAME_MASK_CSNZ "x????x????xx"
 
-#define SOCKETCONSTRUCTOR_SIG_CSNZ "\xE8\x00\x00\x00\x00\xEB\x00\x33\xC0\xC7\x45\x00\x00\x00\x00\x00\x68"
-#define SOCKETCONSTRUCTOR_MASK_CSNZ "x????x?xxxx?????x"
+#define SOCKETCONSTRUCTOR_SIG_CSNZ "\xE8\x00\x00\x00\x00\xEB\x00\x33\xC0\x53\xFF\xB5"
+#define SOCKETCONSTRUCTOR_MASK_CSNZ "x????x?xxxxx"
 
 #define EVP_CIPHER_CTX_NEW_SIG_CSNZ "\xE8\x00\x00\x00\x00\x8B\xF8\x89\xBE"
 #define EVP_CIPHER_CTX_NEW_MASK_CSNZ "x????xxxx"
@@ -118,12 +122,7 @@ bool g_bDumpAll = false;
 bool g_bDisableAuthUI = false;
 bool g_bUseSSL = false;
 bool g_bWriteMetadata = false;
-bool g_bLoadZBSkillFromFile = false;
-bool g_bLoadAllStarFromFile = false;
-bool g_bLoadModeEventFromFile = false;
-bool g_bLoadZombie5FromFile = false;
-bool g_bLoadTDMSpawnFromFile = false;
-bool g_bLoadBoostingPointsFromFile = false;
+bool g_bLoadDediCsvFromFile = false;
 bool g_bRegister = false;
 bool g_bNoNGHook = false;
 
@@ -311,53 +310,74 @@ std::unordered_map<std::string, dediCsvType> dediCsv = {
 	{ "resource/zombi5/ZombiVirusBonus_Dedi.csv", ZombiVirusBonus }
 };
 
-bool(__thiscall* g_pfnCreateStringTable)(int* ptr, const char* filename);
-bool LoadCsv(int* _this, const char* filename, unsigned char* defaultBuf, int defaultBufSize, bool loadFromFile)
+bool LoadCsv(int* _this, const char* filename, unsigned char* defaultBuf, int defaultBufSize)
 {
 	unsigned char* buffer = NULL;
 	long size = 0;
-	if (loadFromFile)
+
+	if (g_bLoadDediCsvFromFile)
 	{
-		std::fstream fs(filename, std::ios::binary | std::ios::in);
-		if (!fs.is_open())
+		char path[MAX_PATH];
+		snprintf(path, sizeof(path), "%s/Data/%s", Sys_GetLongPathNameWithoutBin(), filename);
+
+		FILE* file = fopen(path, "rb");
+		if (!file)
 		{
-			printf("LoadCsv: %s not found, loading hardcoded values...\n", filename);
-			goto LoadDefaultBuf;
+			printf("LoadCsv: %s failed to load from file (file == NULL), loading from filesystem\n", filename);
+			goto LoadFileSystem;
 		}
 
-		fs.seekp(0, std::ios::end);
-		size = fs.tellp();
-		fs.seekp(0, std::ios::beg);
+		fseek(file, 0, SEEK_END);
+		size = ftell(file);
+		rewind(file);
 
-		if (size <= 0)
+		if (size)
 		{
-			printf("LoadCsv: %s size == 0, loading hardcoded values...\n", filename);
-			goto LoadDefaultBuf;
+			buffer = (unsigned char*)malloc(size);
+			if (buffer)
+				fread(buffer, 1, size, file);
+			else
+				printf("LoadCsv: %s failed to load from file (malloc failed), loading from filesystem\n", filename);
 		}
+		else
+			printf("LoadCsv: %s failed to load from file (size <= 0), loading from filesystem\n", filename);
 
+		fclose(file);
+
+		if (buffer)
+			goto SetBuffer;
+	}
+
+LoadFileSystem:
+	FileHandle_t fh = g_pFileSystem->Open(filename, "rb", 0);
+	if (!fh)
+	{
+		printf("LoadCsv: %s failed to load from filesystem (fh == NULL), loading hardcoded values\n", filename);
+		goto LoadDefaultBuf;
+	}
+
+	size = g_pFileSystem->Size(fh);
+	if (size)
+	{
 		buffer = (unsigned char*)malloc(size);
-		if (!buffer)
-		{
-			printf("LoadCsv: %s failed to malloc, loading hardcoded values...\n", filename);
-			goto LoadDefaultBuf;
-		}
-
-		fs.read((char*)buffer, size);
-		fs.close();
+		if (buffer)
+			g_pFileSystem->Read(buffer, size, fh);
+		else
+			printf("LoadCsv: %s failed to load from filesystem (malloc failed), loading hardcoded values\n", filename);
 	}
 	else
-	{
-	LoadDefaultBuf:
-		buffer = defaultBuf;
-		size = defaultBufSize;
-	}
+		printf("LoadCsv: %s failed to load from filesystem (size <= 0), loading hardcoded values\n", filename);
 
-	if (size <= 0 || !buffer)
-	{
-		printf("LoadCsv: %s failed to load hardcoded values, loading from filesystem...\n", filename);
-		return g_pfnCreateStringTable(_this, filename);
-	}
+	g_pFileSystem->Close(fh);
 
+	if (buffer)
+		goto SetBuffer;
+
+LoadDefaultBuf:
+	buffer = defaultBuf;
+	size = defaultBufSize;
+
+SetBuffer:
 	g_pfnParseCSV(_this, buffer, size);
 
 	bool result = 0;
@@ -367,128 +387,146 @@ bool LoadCsv(int* _this, const char* filename, unsigned char* defaultBuf, int de
 	return result;
 }
 
-bool __fastcall Hook_CreateStringTable(int* ptr, int reg, const char* filename)
+CreateHookClassType(bool, CreateStringTable, int, const char* filename)
 {
-	if (g_bLoadBoostingPointsFromFile)
-	{
-		std::string filenameStr = filename;
-		if (filenameStr.find("maps/BoostingPoints_Dedi_") != std::string::npos)
-			return LoadCsv(ptr, filename, NULL, NULL, true);
-	}
+	std::string filenameStr = filename;
+	if (filenameStr.find("maps/BoostingPoints_Dedi_") != std::string::npos)
+		return LoadCsv(ptr, filename, NULL, NULL);
 
 	if (dediCsv.find(filename) != dediCsv.end())
 	{
 		switch (dediCsv[filename])
 		{
-		case TDM_Spawn_Replacement: return LoadCsv(ptr, filename, g_TDM_Spawn_Replacement, sizeof(g_TDM_Spawn_Replacement), g_bLoadTDMSpawnFromFile);
-		case AllStar_Skill: return LoadCsv(ptr, filename, g_AllStar_Skill, sizeof(g_AllStar_Skill), g_bLoadAllStarFromFile);
-		case AllStar_Status: return LoadCsv(ptr, filename, g_AllStar_Status, sizeof(g_AllStar_Status), g_bLoadAllStarFromFile);
-		case LastStand: return LoadCsv(ptr, filename, g_LastStand, sizeof(g_LastStand), g_bLoadModeEventFromFile);
-		case ProtectionSupplyWeapon: return LoadCsv(ptr, filename, g_ProtectionSupplyWeapon, sizeof(g_ProtectionSupplyWeapon), g_bLoadModeEventFromFile);
-		case RandomRule_Classic: return LoadCsv(ptr, filename, g_RandomRule_Classic, sizeof(g_RandomRule_Classic), g_bLoadModeEventFromFile);
-		case RandomRule: return LoadCsv(ptr, filename, g_RandomRule, sizeof(g_RandomRule), g_bLoadModeEventFromFile);
-		case ZSRogueLiteAbility: return LoadCsv(ptr, filename, g_ZSRogueLiteAbility, sizeof(g_ZSRogueLiteAbility), g_bLoadModeEventFromFile);
-		case ZSTransform_Skill: return LoadCsv(ptr, filename, g_ZSTransform_Skill, sizeof(g_ZSTransform_Skill), g_bLoadModeEventFromFile);
-		case ZSTransform_Status: return LoadCsv(ptr, filename, g_ZSTransform_Status, sizeof(g_ZSTransform_Status), g_bLoadModeEventFromFile);
-		case FireBombOption: return LoadCsv(ptr, filename, g_FireBombOption, sizeof(g_FireBombOption), g_bLoadZBSkillFromFile);
-		case HumanAbilityData: return LoadCsv(ptr, filename, g_HumanAbilityData, sizeof(g_HumanAbilityData), g_bLoadZombie5FromFile);
-		case HumanAbilityProbData: return LoadCsv(ptr, filename, g_HumanAbilityProbData, sizeof(g_HumanAbilityProbData), g_bLoadZombie5FromFile);
-		case SpecialZombieProb: return LoadCsv(ptr, filename, g_SpecialZombieProb, sizeof(g_SpecialZombieProb), g_bLoadZombie5FromFile);
-		case VirusFactorReq: return LoadCsv(ptr, filename, g_VirusFactorReq, sizeof(g_VirusFactorReq), g_bLoadZombie5FromFile);
-		case ZombiVirusBonus: return LoadCsv(ptr, filename, g_ZombiVirusBonus, sizeof(g_ZombiVirusBonus), g_bLoadZombie5FromFile);
+		case TDM_Spawn_Replacement: return LoadCsv(ptr, filename, g_TDM_Spawn_Replacement, sizeof(g_TDM_Spawn_Replacement));
+		case AllStar_Skill: return LoadCsv(ptr, filename, g_AllStar_Skill, sizeof(g_AllStar_Skill));
+		case AllStar_Status: return LoadCsv(ptr, filename, g_AllStar_Status, sizeof(g_AllStar_Status));
+		case LastStand: return LoadCsv(ptr, filename, g_LastStand, sizeof(g_LastStand));
+		case ProtectionSupplyWeapon: return LoadCsv(ptr, filename, g_ProtectionSupplyWeapon, sizeof(g_ProtectionSupplyWeapon));
+		case RandomRule_Classic: return LoadCsv(ptr, filename, g_RandomRule_Classic, sizeof(g_RandomRule_Classic));
+		case RandomRule: return LoadCsv(ptr, filename, g_RandomRule, sizeof(g_RandomRule));
+		case ZSRogueLiteAbility: return LoadCsv(ptr, filename, g_ZSRogueLiteAbility, sizeof(g_ZSRogueLiteAbility));
+		case ZSTransform_Skill: return LoadCsv(ptr, filename, g_ZSTransform_Skill, sizeof(g_ZSTransform_Skill));
+		case ZSTransform_Status: return LoadCsv(ptr, filename, g_ZSTransform_Status, sizeof(g_ZSTransform_Status));
+		case FireBombOption: return LoadCsv(ptr, filename, g_FireBombOption, sizeof(g_FireBombOption));
+		case HumanAbilityData: return LoadCsv(ptr, filename, g_HumanAbilityData, sizeof(g_HumanAbilityData));
+		case HumanAbilityProbData: return LoadCsv(ptr, filename, g_HumanAbilityProbData, sizeof(g_HumanAbilityProbData));
+		case SpecialZombieProb: return LoadCsv(ptr, filename, g_SpecialZombieProb, sizeof(g_SpecialZombieProb));
+		case VirusFactorReq: return LoadCsv(ptr, filename, g_VirusFactorReq, sizeof(g_VirusFactorReq));
+		case ZombiVirusBonus: return LoadCsv(ptr, filename, g_ZombiVirusBonus, sizeof(g_ZombiVirusBonus));
 		}
 	}
 
 	return g_pfnCreateStringTable(ptr, filename);
 }
 
-int(__stdcall* g_pfnLoadJson)(std::string* filename, std::string* buffer);
-bool LoadJsonFromFile(std::string* filename, std::string* oriBuf, unsigned char* defaultBuf, int defaultBufSize)
+bool LoadJson(std::string* filename, std::string* oriBuf, unsigned char* defaultBuf, int defaultBufSize)
 {
 	unsigned char* buffer = NULL;
 	long size = 0;
-	if (g_bLoadZBSkillFromFile)
+
+	if (g_bLoadDediCsvFromFile)
 	{
-		std::fstream fs(*filename, std::ios::binary | std::ios::in);
-		if (!fs.is_open())
+		char path[MAX_PATH];
+		snprintf(path, sizeof(path), "%s/Data/%s", Sys_GetLongPathNameWithoutBin(), filename);
+
+		FILE* file = fopen(filename->c_str(), "rb");
+		if (!file)
 		{
-			printf("LoadJsonFromFile: %s not found, loading hardcoded values...\n", filename->c_str());
-			goto LoadDefaultBuf;
+			printf("LoadJson: %s failed to load from file (file == NULL), loading from filesystem\n", filename->c_str());
+			goto LoadFileSystem;
 		}
 
-		fs.seekp(0, std::ios::end);
-		size = fs.tellp();
-		fs.seekp(0, std::ios::beg);
+		fseek(file, 0, SEEK_END);
+		size = ftell(file);
+		rewind(file);
 
-		if (size <= 0)
+		if (size)
 		{
-			printf("LoadJsonFromFile: %s size == 0, loading hardcoded values...\n", filename->c_str());
-			goto LoadDefaultBuf;
+			buffer = (unsigned char*)malloc(size);
+			if (buffer)
+				fread(buffer, 1, size, file);
+			else
+				printf("LoadJson: %s failed to load from file (malloc failed), loading from filesystem\n", filename->c_str());
 		}
+		else
+			printf("LoadJson: %s failed to load from file (size <= 0), loading from filesystem\n", filename->c_str());
 
+		fclose(file);
+
+		if (buffer)
+			goto SetBuffer;
+	}
+
+LoadFileSystem:
+	FileHandle_t fh = g_pFileSystem->Open(filename->c_str(), "r", 0);
+	if (!fh)
+	{
+		printf("LoadJson: %s failed to load from filesystem (fh == NULL), loading hardcoded values\n", filename->c_str());
+		goto LoadDefaultBuf;
+	}
+
+	size = g_pFileSystem->Size(fh);
+	if (size)
+	{
 		buffer = (unsigned char*)malloc(size);
-		if (!buffer)
-		{
-			printf("LoadJsonFromFile: %s failed to malloc, loading hardcoded values...\n", filename->c_str());
-			goto LoadDefaultBuf;
-		}
-
-		fs.read((char*)buffer, size);
-		fs.close();
+		if (buffer)
+			g_pFileSystem->Read(buffer, size, fh);
+		else
+			printf("LoadJson: %s failed to load from filesystem (malloc failed), loading hardcoded values\n", filename->c_str());
 	}
 	else
-	{
+		printf("LoadJson: %s failed to load from filesystem (size <= 0), loading hardcoded values\n", filename->c_str());
+
+	g_pFileSystem->Close(fh);
+
+	if (buffer)
+		goto SetBuffer;
+
 LoadDefaultBuf:
-		buffer = defaultBuf;
-		size = defaultBufSize;
-	}
+	buffer = defaultBuf;
+	size = defaultBufSize;
 
-	if (size <= 0 || !buffer)
-	{
-		printf("LoadJsonFromFile: %s failed to load hardcoded values, loading from filesystem...\n", filename->c_str());
-		return g_pfnLoadJson(filename, oriBuf);
-	}
-
+SetBuffer:
 	*oriBuf = std::string((char*)buffer, (char*)buffer + size);
 
 	return 1;
 }
 
-int __stdcall Hook_LoadJson(std::string* filename, std::string* buffer)
+CreateHook(__stdcall, int, LoadJson, std::string* filename, std::string* buffer)
 {
 	if (dediCsv.find(*filename) != dediCsv.end())
 	{
 		switch (dediCsv[*filename])
 		{
-		case ZombieSkillProperty_Crazy: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Crazy, sizeof(g_ZombieSkillProperty_Crazy));
-		case ZombieSkillProperty_JumpBuff: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_JumpBuff, sizeof(g_ZombieSkillProperty_JumpBuff));
-		case ZombieSkillProperty_ArmorUp: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_ArmorUp, sizeof(g_ZombieSkillProperty_ArmorUp));
-		case ZombieSkillProperty_Heal: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Heal, sizeof(g_ZombieSkillProperty_Heal));
-		case ZombieSkillProperty_ShieldBuf: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_ShieldBuf, sizeof(g_ZombieSkillProperty_ShieldBuf));
-		case ZombieSkillProperty_Cloacking: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Cloacking, sizeof(g_ZombieSkillProperty_Cloacking));
-		case ZombieSkillProperty_Trap: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Trap, sizeof(g_ZombieSkillProperty_Trap));
-		case ZombieSkillProperty_Smoke: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Smoke, sizeof(g_ZombieSkillProperty_Smoke));
-		case ZombieSkillProperty_VoodooHeal: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_VoodooHeal, sizeof(g_ZombieSkillProperty_VoodooHeal));
-		case ZombieSkillProperty_Shock: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Shock, sizeof(g_ZombieSkillProperty_Shock));
-		case ZombieSkillProperty_Rush: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Rush, sizeof(g_ZombieSkillProperty_Rush));
-		case ZombieSkillProperty_Pile: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Pile, sizeof(g_ZombieSkillProperty_Pile));
-		case ZombieSkillProperty_Bat: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Bat, sizeof(g_ZombieSkillProperty_Bat));
-		case ZombieSkillProperty_Stiffen: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Stiffen, sizeof(g_ZombieSkillProperty_Stiffen));
-		case ZombieSkillProperty_SelfDestruct: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_SelfDestruct, sizeof(g_ZombieSkillProperty_SelfDestruct));
-		case ZombieSkillProperty_Penetration: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Penetration, sizeof(g_ZombieSkillProperty_Penetration));
-		case ZombieSkillProperty_Revival: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Revival, sizeof(g_ZombieSkillProperty_Revival));
-		case ZombieSkillProperty_Telleport: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Telleport, sizeof(g_ZombieSkillProperty_Telleport));
-		case ZombieSkillProperty_Boost: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Boost, sizeof(g_ZombieSkillProperty_Boost));
-		case ZombieSkillProperty_BombCreate: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_BombCreate, sizeof(g_ZombieSkillProperty_BombCreate));
-		case ZombieSkillProperty_Flying: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Flying, sizeof(g_ZombieSkillProperty_Flying));
-		case ZombieSkillProperty_Fireball: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Fireball, sizeof(g_ZombieSkillProperty_Fireball));
-		case ZombieSkillProperty_DogShoot: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_DogShoot, sizeof(g_ZombieSkillProperty_DogShoot));
-		case ZombieSkillProperty_ViolentRush: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_ViolentRush, sizeof(g_ZombieSkillProperty_ViolentRush));
-		case ZombieSkillProperty_WebShooter: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_WebShooter, sizeof(g_ZombieSkillProperty_WebShooter));
-		case ZombieSkillProperty_WebBomb: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_WebBomb, sizeof(g_ZombieSkillProperty_WebBomb));
-		case ZombieSkillProperty_Protect: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Protect, sizeof(g_ZombieSkillProperty_Protect));
-		case ZombieSkillProperty_ChargeSlash: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_ChargeSlash, sizeof(g_ZombieSkillProperty_ChargeSlash));
-		case ZombieSkillProperty_Claw: return LoadJsonFromFile(filename, buffer, g_ZombieSkillProperty_Claw, sizeof(g_ZombieSkillProperty_Claw));
+		case ZombieSkillProperty_Crazy: return LoadJson(filename, buffer, g_ZombieSkillProperty_Crazy, sizeof(g_ZombieSkillProperty_Crazy));
+		case ZombieSkillProperty_JumpBuff: return LoadJson(filename, buffer, g_ZombieSkillProperty_JumpBuff, sizeof(g_ZombieSkillProperty_JumpBuff));
+		case ZombieSkillProperty_ArmorUp: return LoadJson(filename, buffer, g_ZombieSkillProperty_ArmorUp, sizeof(g_ZombieSkillProperty_ArmorUp));
+		case ZombieSkillProperty_Heal: return LoadJson(filename, buffer, g_ZombieSkillProperty_Heal, sizeof(g_ZombieSkillProperty_Heal));
+		case ZombieSkillProperty_ShieldBuf: return LoadJson(filename, buffer, g_ZombieSkillProperty_ShieldBuf, sizeof(g_ZombieSkillProperty_ShieldBuf));
+		case ZombieSkillProperty_Cloacking: return LoadJson(filename, buffer, g_ZombieSkillProperty_Cloacking, sizeof(g_ZombieSkillProperty_Cloacking));
+		case ZombieSkillProperty_Trap: return LoadJson(filename, buffer, g_ZombieSkillProperty_Trap, sizeof(g_ZombieSkillProperty_Trap));
+		case ZombieSkillProperty_Smoke: return LoadJson(filename, buffer, g_ZombieSkillProperty_Smoke, sizeof(g_ZombieSkillProperty_Smoke));
+		case ZombieSkillProperty_VoodooHeal: return LoadJson(filename, buffer, g_ZombieSkillProperty_VoodooHeal, sizeof(g_ZombieSkillProperty_VoodooHeal));
+		case ZombieSkillProperty_Shock: return LoadJson(filename, buffer, g_ZombieSkillProperty_Shock, sizeof(g_ZombieSkillProperty_Shock));
+		case ZombieSkillProperty_Rush: return LoadJson(filename, buffer, g_ZombieSkillProperty_Rush, sizeof(g_ZombieSkillProperty_Rush));
+		case ZombieSkillProperty_Pile: return LoadJson(filename, buffer, g_ZombieSkillProperty_Pile, sizeof(g_ZombieSkillProperty_Pile));
+		case ZombieSkillProperty_Bat: return LoadJson(filename, buffer, g_ZombieSkillProperty_Bat, sizeof(g_ZombieSkillProperty_Bat));
+		case ZombieSkillProperty_Stiffen: return LoadJson(filename, buffer, g_ZombieSkillProperty_Stiffen, sizeof(g_ZombieSkillProperty_Stiffen));
+		case ZombieSkillProperty_SelfDestruct: return LoadJson(filename, buffer, g_ZombieSkillProperty_SelfDestruct, sizeof(g_ZombieSkillProperty_SelfDestruct));
+		case ZombieSkillProperty_Penetration: return LoadJson(filename, buffer, g_ZombieSkillProperty_Penetration, sizeof(g_ZombieSkillProperty_Penetration));
+		case ZombieSkillProperty_Revival: return LoadJson(filename, buffer, g_ZombieSkillProperty_Revival, sizeof(g_ZombieSkillProperty_Revival));
+		case ZombieSkillProperty_Telleport: return LoadJson(filename, buffer, g_ZombieSkillProperty_Telleport, sizeof(g_ZombieSkillProperty_Telleport));
+		case ZombieSkillProperty_Boost: return LoadJson(filename, buffer, g_ZombieSkillProperty_Boost, sizeof(g_ZombieSkillProperty_Boost));
+		case ZombieSkillProperty_BombCreate: return LoadJson(filename, buffer, g_ZombieSkillProperty_BombCreate, sizeof(g_ZombieSkillProperty_BombCreate));
+		case ZombieSkillProperty_Flying: return LoadJson(filename, buffer, g_ZombieSkillProperty_Flying, sizeof(g_ZombieSkillProperty_Flying));
+		case ZombieSkillProperty_Fireball: return LoadJson(filename, buffer, g_ZombieSkillProperty_Fireball, sizeof(g_ZombieSkillProperty_Fireball));
+		case ZombieSkillProperty_DogShoot: return LoadJson(filename, buffer, g_ZombieSkillProperty_DogShoot, sizeof(g_ZombieSkillProperty_DogShoot));
+		case ZombieSkillProperty_ViolentRush: return LoadJson(filename, buffer, g_ZombieSkillProperty_ViolentRush, sizeof(g_ZombieSkillProperty_ViolentRush));
+		case ZombieSkillProperty_WebShooter: return LoadJson(filename, buffer, g_ZombieSkillProperty_WebShooter, sizeof(g_ZombieSkillProperty_WebShooter));
+		case ZombieSkillProperty_WebBomb: return LoadJson(filename, buffer, g_ZombieSkillProperty_WebBomb, sizeof(g_ZombieSkillProperty_WebBomb));
+		case ZombieSkillProperty_Protect: return LoadJson(filename, buffer, g_ZombieSkillProperty_Protect, sizeof(g_ZombieSkillProperty_Protect));
+		case ZombieSkillProperty_ChargeSlash: return LoadJson(filename, buffer, g_ZombieSkillProperty_ChargeSlash, sizeof(g_ZombieSkillProperty_ChargeSlash));
+		case ZombieSkillProperty_Claw: return LoadJson(filename, buffer, g_ZombieSkillProperty_Claw, sizeof(g_ZombieSkillProperty_Claw));
 		}
 	}
 
@@ -1263,6 +1301,11 @@ DWORD WINAPI HookThread(LPVOID lpThreadParameter)
 			pushStr = FindPush(g_dwMpBase, g_dwMpBase + g_dwMpSize, (PCHAR)("Failed to Open AllStar_Status-Dedi Table"));
 			patchAddr = pushStr - 0x1E; // or 0x1B?
 			WriteMemory((void*)patchAddr, (BYTE*)patch, sizeof(patch));
+
+			// NOP IsDedi() function to spawn zsht_item_box and zbsitem
+			pushStr = FindPush(g_dwMpBase, g_dwMpBase + g_dwMpSize, (PCHAR)("zsht_item_box"), 3);
+			patchAddr = pushStr - 0x4D1;
+			WriteMemory((void*)patchAddr, (BYTE*)patch, sizeof(patch));
 		}
 
 		g_pEngine->pfnAddCommand("cso_bot_add", CSO_Bot_Add);
@@ -1271,16 +1314,19 @@ DWORD WINAPI HookThread(LPVOID lpThreadParameter)
 	return TRUE;
 }
 
-void Init(HMODULE hModule)
+void Init(HMODULE hEngineModule, HMODULE hFileSystemModule)
 {
 	printf("Init()\n");
 
 	if (CommandLine()->CheckParm("-debug") || CommandLine()->CheckParm("-dev") || CommandLine()->CheckParm("+developer 1") || CommandLine()->CheckParm("-developer"))
 		CreateDebugConsole();
 
-	g_hEngineModule = hModule;
+	g_hEngineModule = hEngineModule;
 	g_dwEngineBase = GetModuleBase(g_hEngineModule);
 	g_dwEngineSize = GetModuleSize(g_hEngineModule);
+
+	g_dwFileSystemBase = GetModuleBase(hFileSystemModule);
+	g_dwFileSystemSize = GetModuleSize(hFileSystemModule);
 
 	const char* port;
 	const char* ip;
@@ -1330,20 +1376,15 @@ void Init(HMODULE hModule)
 	g_bDisableAuthUI = CommandLine()->CheckParm("-disableauthui");
 	g_bUseSSL = CommandLine()->CheckParm("-usessl");
 	g_bWriteMetadata = CommandLine()->CheckParm("-writemetadata");
-	g_bLoadZBSkillFromFile = CommandLine()->CheckParm("-loadzbskillfromfile");
-	g_bLoadAllStarFromFile = CommandLine()->CheckParm("-loadallstarfromfile");
-	g_bLoadModeEventFromFile = CommandLine()->CheckParm("-loadmodeeventfromfile");
-	g_bLoadZombie5FromFile = CommandLine()->CheckParm("-loadzombie5fromfile");
-	g_bLoadTDMSpawnFromFile = CommandLine()->CheckParm("-loadtdmspawnfromfile");
-	g_bLoadBoostingPointsFromFile = CommandLine()->CheckParm("-loadboostingpointsfromfile");
+	g_bLoadDediCsvFromFile = CommandLine()->CheckParm("-loaddedicsvfromfile");
 	g_bNoNGHook = CommandLine()->CheckParm("-nonghook");
 
 	printf("g_pServerIP = %s, g_pServerPort = %s\n", g_pServerIP, g_pServerPort);
 }
 
-void Hook(HMODULE hModule)
+void Hook(HMODULE hEngineModule, HMODULE hFileSystemModule)
 {
-	Init(hModule);
+	Init(hEngineModule, hFileSystemModule);
 
 	DWORD find = NULL;
 	void* dummy = NULL;

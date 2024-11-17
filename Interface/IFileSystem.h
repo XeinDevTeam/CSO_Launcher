@@ -47,7 +47,9 @@ public:
 	virtual bool RemoveSearchPath(const char *pPath) = 0;
 	virtual void RemoveFile(const char *pRelativePath, const char *pathID = 0) = 0;
 	virtual void CreateDirHierarchy(const char *path, const char *pathID = 0) = 0;
+	virtual unsigned Unknown1() = 0;
 	virtual bool FileExists(const char *pFileName) = 0;
+	virtual bool Unknown2(const char* a1, const char* pFileName, char a3) = 0;
 	virtual bool IsDirectory(const char *pFileName) = 0;
 	virtual FileHandle_t Open(const char *pFileName, const char *pOptions, const char *pathID = 0) = 0;
 	virtual void Close(FileHandle_t file) = 0;
@@ -74,7 +76,8 @@ public:
 	virtual const char *GetLocalPath(const char *pFileName, char *pLocalPath, int maxlen) = 0;
 	virtual char *ParseFile(char *data, char *token, bool *wasquoted) = 0;
 	virtual bool FullPathToRelativePath(const char *pFullpath, char *pRelative) = 0;
-	virtual bool GetCurrentDirectory(char *pDirectory, int maxlen) = 0;
+	virtual bool GetCurrentDirectoryW(char *pDirectory, int maxlen) = 0;
+	virtual bool GetCurrentDirectoryA(char* pDirectory, int maxlen) = 0;
 	virtual void PrintOpenedFiles(void) = 0;
 	virtual void SetWarningFunc(void (*pfnWarning)(const char *fmt, ...)) = 0;
 	virtual void SetWarningLevel(FileWarningLevel_t level) = 0;
@@ -102,4 +105,6 @@ public:
 };
 
 #define FILESYSTEM_INTERFACE_VERSION "VFileSystem009"
+
+extern IFileSystem* g_pFileSystem;
 #endif

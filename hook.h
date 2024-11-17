@@ -10,7 +10,7 @@ typedef int (*pfnUserMsgHook)(const char* pszName, int iSize, void* pbuf);
 #include <wrect.h>
 #include <cdll_int.h>
 
-void Hook(HMODULE hModule);
+void Hook(HMODULE hEngineModule, HMODULE hFileSystemModule);
 void Unhook();
 
 #define CreateHook(funcType, returnType, funcName, ...) \
