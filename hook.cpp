@@ -429,7 +429,7 @@ bool LoadJson(std::string* filename, std::string* oriBuf, unsigned char* default
 		char path[MAX_PATH];
 		snprintf(path, sizeof(path), "%s/Data/%s", Sys_GetLongPathNameWithoutBin(), filename->c_str());
 
-		FILE* file = fopen(filename->c_str(), "rb");
+		FILE* file = fopen(path, "rb");
 		if (!file)
 		{
 			printf("LoadJson: %s failed to load from file (file == NULL), loading from filesystem\n", filename->c_str());
