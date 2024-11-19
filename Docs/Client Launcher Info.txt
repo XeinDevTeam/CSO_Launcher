@@ -1,0 +1,112 @@
+Instructions for the client launcher:
+
+1. Extract CSOLauncher.exe to CSNZ\Bin folder
+2. Run CSOLauncher.exe. If you want to connect to another server you can use -ip -port parameters in shortcut. For example: "GamePath\CSOLauncher.exe -ip 192.168.0.2 -port 30002"
+
+Launch parameter list for the client launcher:
+1. -debug/-dev/+developer 1/-developer (enable debug console. by default, disabled)
+2. -ip <ip> (master server's IP. default: 127.0.0.1)
+3. -port <port> (master server's port. default: 30002)
+4. -login/-register <username> (username for auto login/register. by default, disabled)
+5. -password <password> (password for the auto login/register. by default, disabled)
+6. -useoriginalserver (use IP and port from the NARs/PAKs. by default, disabled)
+7. -dumpmetadata (dump metadata packets received to folder "CSNZ\Bin\MetadataDump". by default, disabled)
+8. -ignoremetadata (ignore metadata received. by default, disabled)
+9. -dumpquest (dump quest packets received to folder "CSNZ\Bin\QuestDump". by default, disabled)
+10. -dumpumsg (dump umsg packets received to folder "CSNZ\Bin\UMsgDump". by default, disabled)
+11. -dumpalarm (dump alarm packets received to folder "CSNZ\Bin\AlarmDump". by default, disabled)
+12. -dumpitem (dump item packets received to folder "CSNZ\Bin\ItemDump". by default, disabled)
+13. -dumpcrypt (dump crypt packets received to folder "CSNZ\Bin\CryptDump". by default, disabled)
+14. -dumpall (dump all packets received to folder "CSNZ\Bin\Packets". by default, disabled)
+15. -disableauthui (disable login/register pop-up. by default, pop-up enabled)
+16. -usessl (use ssl when connecting to the master server. by default, not using ssl)
+17. -writemetadata (overwrite zip metadatas from the folder "CSNZ\Bin\Metadata". by default, disabled)
+18. -loaddedicsvfromfile (load dedicated server csv files from the folder "CSNZ\Data". by default, loading from filesystem and hardcoded values)
+19. -nonghook (disable the hook of BlackCipher2/NGClient, which makes the anti-cheat be able to run. by default, anti-cheat disabled)
+20. -nomutex (don't create mutex, which allows more than one instance of the game to be running at the same time. by default, only one instance is allowed)
+
+Zip Metadatas:
+- MapList.csv
+- ClientTable.csv
+- ModeList.csv
+- MatchOption.csv
+- weaponparts.csv
+- MileageShop.csv
+- GameModeList.csv
+- badwordadd.csv
+- badworddel.csv
+- progress_unlock.csv
+- ReinforceMaxLv.csv
+- ReinforceMaxExp.csv
+- Item.csv
+- voxel_list.csv
+- voxel_item.csv
+- CodisData.csv
+- HonorMoneyShop.csv
+- ItemExpireTime.csv
+- scenariotx_common.json
+- scenariotx_dedi.json
+- shopitemlist_dedi.json
+- EpicPieceShop.csv
+- WeaponProp.json
+- SeasonBadgeShop.csv
+- ppsystem.json
+- classmastery.json
+- ZBCompetitive.json
+- ModeEvent.csv
+- EventShop.csv
+- FamilyTotalWarMap.csv
+- FamilyTotalWar.json
+
+Dedicated server csv files:
+- maps/BoostingPoints_Dedi_%s.csv (%s being the map name. example: maps/BoostingPoints_Dedi_dm_mtbase.csv)
+- maps/TDM_Spawn_Replacement_Dedi.csv
+- resource/allstar/AllStar_Skill-Dedi.csv
+- resource/allstar/AllStar_Status-Dedi.csv
+- resource/ModeEvent/LastStand_Dedi.csv
+- resource/ModeEvent/ProtectionSupplyWeapon_Dedi.csv
+- resource/ModeEvent/RandomRule_Classic_Dedi.csv
+- resource/ModeEvent/RandomRule_Dedi.csv
+- resource/ModeEvent/ZSRogueLiteAbility_Dedi.csv
+- resource/ModeEvent/ZSTransform_Skill-Dedi.csv
+- resource/ModeEvent/ZSTransform_Status-Dedi.csv
+- resource/zombi/FireBombOption_Dedi.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Crazy.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_JumpBuff.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_ArmorUp.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Heal.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_ShieldBuf.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Cloacking.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Trap.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Smoke.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_VoodooHeal.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Shock.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Rush.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Pile.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Bat.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Stiffen.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_SelfDestruct.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Penetration.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Revival.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Telleport.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Boost.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_BombCreate.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Flying.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Fireball.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_DogShoot.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_ViolentRush.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_WebShooter.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_WebBomb.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Protect.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_ChargeSlash.csv
+- resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Claw.csv
+- resource/zombi5/HumanAbilityData_Dedi.csv
+- resource/zombi5/HumanAbilityProbData_Dedi.csv
+- resource/zombi5/SpecialZombieProb_Dedi.csv
+- resource/zombi5/VirusFactorReq_Dedi.csv
+- resource/zombi5/ZombiVirusBonus_Dedi.csv
+
+Command list for the client launcher:
+1. cso_bot_add (add T bot. crashes the game if you're not in-game, if you're not the room host or the room is being hosted by a dedicated server)
+2. cso_bot_add 1 (add CT bot. crashes the game if you're not in-game, if you're not the room host or the room is being hosted by a dedicated server)
+3. metadata_requestall (requests all metadatas to be sent to the client)
