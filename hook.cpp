@@ -1594,6 +1594,12 @@ void Hook(HMODULE hEngineModule, HMODULE hFileSystemModule)
 		WriteMemory((void*)find, (BYTE*)"CSOLauncher.exe", strlen("CSOLauncher.exe") + 1);
 	}
 
+	// patch 100 fps limit
+	find = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, "%3i fps -- host(%3.0f) sv(%3.0f) cl(%3.0f) gfx(%3.0f) snd(%3.0f) ents(%d)\n", 2);
+	DWORD patchAddr = find - 0x4C4;
+	BYTE patch[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
+	WriteMemory((void*)patchAddr, (BYTE*)patch, sizeof(patch));
+
 	if (!g_bUseOriginalServer && !g_bUseSSL)
 	{
 		// hook GetSSLProtocolName to make Crypt work
