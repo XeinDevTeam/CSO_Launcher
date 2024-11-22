@@ -1001,7 +1001,8 @@ void __fastcall LoginDlg_OnCommand(void* _this, int r, const char* command)
 
 		wchar_t buf[256];
 		swprintf(buf, L"/login %S %S", login, password);
-		g_pChattingManager->PrintToChat(1, buf);
+		if (g_pChattingManager)
+			g_pChattingManager->PrintToChat(1, buf);
 		return;
 	}
 	else if (!strcmp(command, "Register"))
@@ -1015,7 +1016,8 @@ void __fastcall LoginDlg_OnCommand(void* _this, int r, const char* command)
 
 		wchar_t buf[256];
 		swprintf(buf, L"/register %S %S", login, password);
-		g_pChattingManager->PrintToChat(1, buf);
+		if (g_pChattingManager)
+			g_pChattingManager->PrintToChat(1, buf);
 		return;
 	}
 
@@ -1033,7 +1035,8 @@ int __fastcall GameUI_RunFrame(void* _this)
 
 			wchar_t buf[256];
 			swprintf(buf, g_bRegister ? L"/register %S %S" : L"/login %S %S", g_pLogin, g_pPassword);
-			g_pChattingManager->PrintToChat(1, buf);
+			if (g_pChattingManager)
+				g_pChattingManager->PrintToChat(1, buf);
 		}
 
 		if (!g_bDisableAuthUI)
@@ -1121,22 +1124,18 @@ void CSO_Bot_Add()
 	DWORD dwBotManagerPtr = FindPattern(BOT_MANAGER_PTR_SIG_CSNZ, BOT_MANAGER_PTR_MASK_CSNZ, g_dwMpBase, g_dwMpBase + g_dwMpSize, 1);
 	if (!dwBotManagerPtr)
 	{
-		g_pEngine->Con_Printf("CSO_Bot_Add: dwBotManagerPtr == NULL\n");
+		MessageBox(NULL, "dwBotManagerPtr == NULL!!!", "Error", MB_OK);
 		return;
 	}
 	g_pBotManager = **((CCSBotManager***)(dwBotManagerPtr));
 
-	int arg1 = 0, arg2 = 0;
+	int side = 0;
 	int argc = g_pEngine->Cmd_Argc();
 	if (argc > 0)
 	{
-		arg1 = atoi(g_pEngine->Cmd_Argv(1));
-		if (argc >= 2)
-		{
-			arg2 = atoi(g_pEngine->Cmd_Argv(2));
-		}
+		side = atoi(g_pEngine->Cmd_Argv(1));
 	}
-	g_pBotManager->Bot_Add(arg1);
+	g_pBotManager->Bot_Add(side);
 }
 
 CreateHookClass(const char*, GetSSLProtocolName)
@@ -1269,9 +1268,12 @@ DWORD WINAPI HookThread(LPVOID lpThreadParameter)
 		}
 		g_dwGameUISize = GetModuleSize(GetModuleHandle("gameui.dll"));
 
-		g_pChattingManager = g_pEngine->GetChatManager();
-		if (!g_pChattingManager)
-			MessageBox(NULL, "g_pChattingManager == NULL!!!", "Error", MB_OK);
+		if (g_pEngine)
+		{
+			g_pChattingManager = g_pEngine->GetChatManager();
+			if (!g_pChattingManager)
+				MessageBox(NULL, "g_pChattingManager == NULL!!!", "Error", MB_OK);
+		}
 
 		CreateInterfaceFn gameui_factory = CaptureFactory("gameui.dll");
 		CreateInterfaceFn vgui2_factory = CaptureFactory("vgui2.dll");
@@ -1287,28 +1289,43 @@ DWORD WINAPI HookThread(LPVOID lpThreadParameter)
 		g_dwMpSize = GetModuleSize(GetModuleHandle("mp.dll"));
 
 		{
-			// NOP IsDedi() function to load allstar Skill/Status csv
-			DWORD pushStr = FindPush(g_dwMpBase, g_dwMpBase + g_dwMpSize, (PCHAR)("Failed to Open AllStar_Skill-Dedi Table"));
-			// call FF 15
-			// test 85
-			// jz 0F 84
-			// cmp 80 7D
-			// 90 90 90 90 90 90 90 90 90 90 90 90 90 90 80 7D
-			DWORD patchAddr = pushStr - 0x1B;
+			DWORD pushStr = 0;
+			DWORD patchAddr = 0;
 			BYTE patch[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
-			WriteMemory((void*)patchAddr, (BYTE*)patch, sizeof(patch));
 
+			// NOP IsDedi() function to load allstar Skill csv
+			pushStr = FindPush(g_dwMpBase, g_dwMpBase + g_dwMpSize, (PCHAR)("Failed to Open AllStar_Skill-Dedi Table"));
+			if (!pushStr)
+				MessageBox(NULL, "AllStar_Skill_Patch == NULL!!!", "Error", MB_OK);
+			else
+			{
+				patchAddr = pushStr - 0x1B;
+				WriteMemory((void*)patchAddr, (BYTE*)patch, sizeof(patch));
+			}
+
+			// NOP IsDedi() function to load allstar Status csv
 			pushStr = FindPush(g_dwMpBase, g_dwMpBase + g_dwMpSize, (PCHAR)("Failed to Open AllStar_Status-Dedi Table"));
-			patchAddr = pushStr - 0x1E; // or 0x1B?
-			WriteMemory((void*)patchAddr, (BYTE*)patch, sizeof(patch));
+			if (!pushStr)
+				MessageBox(NULL, "AllStar_Status_Patch == NULL!!!", "Error", MB_OK);
+			else
+			{
+				patchAddr = pushStr - 0x1E;
+				WriteMemory((void*)patchAddr, (BYTE*)patch, sizeof(patch));
+			}
 
 			// NOP IsDedi() function to spawn zsht_item_box and zbsitem
 			pushStr = FindPush(g_dwMpBase, g_dwMpBase + g_dwMpSize, (PCHAR)("zsht_item_box"), 3);
-			patchAddr = pushStr - 0x4D1;
-			WriteMemory((void*)patchAddr, (BYTE*)patch, sizeof(patch));
+			if (!pushStr)
+				MessageBox(NULL, "ZBS_ZSHT_ItemBox_Patch == NULL!!!", "Error", MB_OK);
+			else
+			{
+				patchAddr = pushStr - 0x4D1;
+				WriteMemory((void*)patchAddr, (BYTE*)patch, sizeof(patch));
+			}
 		}
 
-		g_pEngine->pfnAddCommand("cso_bot_add", CSO_Bot_Add);
+		if (g_pEngine)
+			g_pEngine->pfnAddCommand("cso_bot_add", CSO_Bot_Add);
 	}
 
 	return TRUE;
@@ -1477,28 +1494,41 @@ void Hook(HMODULE hEngineModule, HMODULE hFileSystemModule)
 		*/
 
 		{
-			DWORD pushStr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Crazy.csv"));
+			DWORD pushStr = 0;
+			DWORD patchAddr = 0;
 
 			// NOP dedi check on Zombie Skills
-			DWORD patchAddr = pushStr - 0x2D;
-			BYTE patch[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x53, 0x8B, 0xD9, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
-			WriteMemory((void*)patchAddr, (BYTE*)patch, sizeof(patch));
-
-			pushStr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("resource/zombi/FireBombOption_Dedi.csv"));
+			pushStr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Crazy.csv"));
+			if (!pushStr)
+				MessageBox(NULL, "ZombieSkillProperty_Patch == NULL!!!", "Error", MB_OK);
+			else
+			{
+				patchAddr = pushStr - 0x2D;
+				BYTE patch[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x53, 0x8B, 0xD9, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
+				WriteMemory((void*)patchAddr, (BYTE*)patch, sizeof(patch));
+			}
 
 			// NOP dedi check on Fire Bomb
-			patchAddr = pushStr - 0x14;
-			BYTE patch2[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x8B, 0xF0, 0x89, 0x75, 0xD8, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
-			WriteMemory((void*)patchAddr, (BYTE*)patch2, sizeof(patch2));
+			pushStr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("resource/zombi/FireBombOption_Dedi.csv"));
+			if (!pushStr)
+				MessageBox(NULL, "FireBombOption_Patch == NULL!!!", "Error", MB_OK);
+			else
+			{
+				patchAddr = pushStr - 0x14;
+				BYTE patch2[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x8B, 0xF0, 0x89, 0x75, 0xD8, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
+				WriteMemory((void*)patchAddr, (BYTE*)patch2, sizeof(patch2));
+			}
 
 			find = FindPattern(CREATESTRINGTABLE_SIG_CSNZ, CREATESTRINGTABLE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 			if (!find)
 				MessageBox(NULL, "CreateStringTable == NULL!!!", "Error", MB_OK);
 			else
+			{
 				InlineHook((void*)find, Hook_CreateStringTable, (void*&)g_pfnCreateStringTable);
 
-			DWORD parseCsvCallAddr = (DWORD)find + 0x71 + 1; // 0x71
-			g_pfnParseCSV = (tParseCSV)(parseCsvCallAddr + 4 + *(DWORD*)parseCsvCallAddr);
+				DWORD parseCsvCallAddr = (DWORD)find + 0x71 + 1; // 0x71
+				g_pfnParseCSV = (tParseCSV)(parseCsvCallAddr + 4 + *(DWORD*)parseCsvCallAddr);
+			}
 
 			find = FindPattern(LOADJSON_SIG_CSNZ, LOADJSON_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
 			if (!find)
@@ -1517,9 +1547,9 @@ void Hook(HMODULE hEngineModule, HMODULE hFileSystemModule)
 	g_pEngine = (cl_enginefunc_t*)(PVOID) * (PDWORD)(FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("ScreenFade")) + 0x0D);
 	if (!g_pEngine)
 		MessageBox(NULL, "g_pEngine == NULL!!!", "Error", MB_OK);
-
-	// hook Pbuf_AddText to allow any cvar or cmd input from console
-	g_pEngine->Pbuf_AddText = Pbuf_AddText;
+	else
+		// hook Pbuf_AddText to allow any cvar or cmd input from console
+		g_pEngine->Pbuf_AddText = Pbuf_AddText;
 
 	if (g_bDumpMetadata || g_bWriteMetadata || g_bIgnoreMetadata)
 	{
@@ -1529,7 +1559,8 @@ void Hook(HMODULE hEngineModule, HMODULE hFileSystemModule)
 		else
 		{
 			InlineHook((void*)find, Hook_Packet_Metadata_Parse, (void*&)g_pfnPacket_Metadata_Parse);
-			g_pEngine->pfnAddCommand("metadata_requestall", Metadata_RequestAll);
+			if (g_pEngine)
+				g_pEngine->pfnAddCommand("metadata_requestall", Metadata_RequestAll);
 		}
 	}
 
@@ -1589,16 +1620,21 @@ void Hook(HMODULE hEngineModule, HMODULE hFileSystemModule)
 
 	// patch launcher name in hw.dll to fix annoying message box (length of launcher filename must be < original name)
 	find = FindPattern("cstrike-online.exe", strlen("cstrike-online.exe"), g_dwEngineBase, g_dwEngineBase + g_dwEngineSize);
-	if (find)
-	{
+	if (!find)
+		MessageBox(NULL, "LauncherName_Patch == NULL!!!", "Error", MB_OK);
+	else
 		WriteMemory((void*)find, (BYTE*)"CSOLauncher.exe", strlen("CSOLauncher.exe") + 1);
-	}
 
 	// patch 100 fps limit
 	find = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, "%3i fps -- host(%3.0f) sv(%3.0f) cl(%3.0f) gfx(%3.0f) snd(%3.0f) ents(%d)\n", 2);
-	DWORD patchAddr = find - 0x4C4;
-	BYTE patch[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
-	WriteMemory((void*)patchAddr, (BYTE*)patch, sizeof(patch));
+	if (!find)
+		MessageBox(NULL, "100Fps_Patch == NULL!!!", "Error", MB_OK);
+	else
+	{
+		DWORD patchAddr = find - 0x4C4;
+		BYTE patch[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
+		WriteMemory((void*)patchAddr, (BYTE*)patch, sizeof(patch));
+	}
 
 	if (!g_bUseOriginalServer && !g_bUseSSL)
 	{
