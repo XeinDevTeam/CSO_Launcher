@@ -33,8 +33,8 @@ DWORD g_dwFileSystemSize;
 #define DEFAULT_IP "127.0.0.1"
 #define DEFAULT_PORT "30002"
 
-#define SOCKETMANAGER_SIG_CSNZ23 "\xE8\x00\x00\x00\x00\xEB\x00\x33\xC0\xA3\x00\x00\x00\x00\xB9"
-#define SOCKETMANAGER_MASK_CSNZ23 "x????x?xxx????x"
+#define SOCKETMANAGER_SIG_CSNZ23 "\xE8\x00\x00\x00\x00\xEB\x00\x33\xC0\xFF\x75\x00\x83\x7D"
+#define SOCKETMANAGER_MASK_CSNZ23 "x????x?xxxx?xx"
 
 #define SERVERCONNECT_SIG_CSNZ2019 "\xE8\x00\x00\x00\x00\x85\xC0\x75\x00\x46"
 #define SERVERCONNECT_MASK_CSNZ2019 "x????xxx?x"
@@ -90,8 +90,8 @@ DWORD g_dwFileSystemSize;
 #define LOADJSON_SIG_CSNZ "\x55\x8B\xEC\x8B\x0D\x00\x00\x00\x00\x53\x56\x8B\x75"
 #define LOADJSON_MASK_CSNZ "xxxxx????xxxx"
 
-#define LOGTOERRORLOG_SIG_CSNZ "\x55\x8B\xEC\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x8B\x75\x00\x8D\x45\x00\x50\x6A\x00\xFF\x75\x00\x8D\x85\x00\x00\x00\x00\x68\x00\x00\x00\x00\x50\xE8\x00\x00\x00\x00\x8B\x10\xFF\x70\x00\x83\xCA\x00\x52\xFF\x15\x00\x00\x00\x00\x83\xC4"
-#define LOGTOERRORLOG_MASK_CSNZ "xxxxx????x????xxxx?xxx?xx?xx?xx?xx????x????xx????xxxx?xx?xxx????xx"
+#define LOGTOERRORLOG_SIG_CSNZ "\x53\x8B\xDC\x83\xEC\x00\x83\xE4\x00\x83\xC4\x00\x55\x8B\x6B\x00\x89\x6C\x24\x00\x8B\xEC\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x8B\x73\x00\x8D\x43"
+#define LOGTOERRORLOG_MASK_CSNZ "xxxxx?xx?xx?xxx?xxx?xxxx????x????xxxx?xxx?xx"
 
 #define READPACKET_SIG_CSNZ "\xE8\x00\x00\x00\x00\x8B\xF0\x83\xFE\x00\x77"
 #define READPACKET_MASK_CSNZ "x????xxxx?x"
@@ -1205,19 +1205,19 @@ CreateHookClass(int, ReadPacket, char* outBuf, int len, unsigned short* outLen, 
 	return result;
 }
 
-CreateHook(__cdecl, void, LogToErrorLog, void* pLogFile, char* fmt, ...)
+CreateHook(__cdecl, void, LogToErrorLog, char* pLogFile, int logFileId, char* fmt, int fmtLen, ...)
 {
-	char outputString[4096];
+	char outputString[1024];
 
 	va_list va;
-	va_start(va, fmt);
+	va_start(va, fmtLen);
 	_vsnprintf_s(outputString, sizeof(outputString), fmt, va);
-	outputString[4095] = 0;
+	outputString[1023] = 0;
 	va_end(va);
 
-	printf("[LogToErrorLog] %s", outputString);
+	printf("[LogToErrorLog][%s.log] %s\n", pLogFile, outputString);
 
-	g_pfnLogToErrorLog(pLogFile, outputString);
+	g_pfnLogToErrorLog(pLogFile, logFileId, outputString, fmtLen);
 }
 
 CreateHook(WINAPI, void, OutputDebugStringA, LPCSTR lpOutString)
