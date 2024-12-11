@@ -7,8 +7,10 @@ typedef float vec2_t[2];
 typedef float vec3_t[3];
 typedef int (*pfnUserMsgHook)(const char* pszName, int iSize, void* pbuf);
 
-#include <wrect.h>
-#include <cdll_int.h>
+#include "wrect.h"
+#include "cdll_int.h"
+
+#include "XorStr.hpp"
 
 void Hook(HMODULE hEngineModule, HMODULE hFileSystemModule);
 void Unhook();

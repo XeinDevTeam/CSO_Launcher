@@ -28,11 +28,12 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	static char szNewCommandParams[2048];
 	HANDLE hObject = NULL;
 
-	VirtualAlloc(0, 0x400u, 0x2000u, 4u);
+	//VirtualAlloc(0, 0x400u, 0x2000u, 4u);
 
 	HANDLE ProcessHeaps[1025];
 	DWORD NumberOfHeaps = GetProcessHeaps(1024, ProcessHeaps);
 	DWORD HeapInformation = 1;
+
 	for (int i = 0; i < NumberOfHeaps; i++)
 	{
 		if (HeapSetInformation(ProcessHeaps[i], HeapCompatibilityInformation, &HeapInformation, 4u))
@@ -69,28 +70,12 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 	registry->Init();
 
-	char szFileName[MAX_PATH];
-	Sys_GetExecutableName(szFileName, sizeof(szFileName));
-	char* szExeName = strrchr(szFileName, '\\') + 1;
-
-	if (_stricmp(szExeName, "hl.exe") && CommandLine()->CheckParm("-game") == NULL)
-	{
-		szExeName[strlen(szExeName) - 4] = '\0';
-		CommandLine()->AppendParm("-game", szExeName);
-	}
-
-	static char szGameName[32] = { 0 };
-	const char* pszGameName = NULL;
-	const char* szGameStr = CommandLine()->CheckParm("-game", &pszGameName);
-
-	strncpy(szGameName, (szGameStr) ? pszGameName : "valve", sizeof(szGameName) - 1);
-	szGameName[sizeof(szGameName) - 1] = 0;
-
-	if (szGameStr && !_strnicmp(&szGameStr[6], "czero", 5))
-		CommandLine()->AppendParm("-forcevalve", NULL);
+	// fix shit
+	CommandLine()->RemoveParm("-game");
+	CommandLine()->AppendParm("-game", "cstrike");
 
 	if (CommandLine()->CheckParm("-lang") == NULL)
-		CommandLine()->AppendParm("-lang", "na_"); 	// the game won't load without this line
+		CommandLine()->AppendParm("-lang", "na_");
 
 	while (1)
 	{
@@ -116,6 +101,7 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 		bool bUseBlobDLL = false;
 
 
+		// TODO: FIND A WAY HOOK WINDOWS API WITHOUT TRIGGERING ERROR CODE 487
 		hEngine = Sys_LoadModule(pszEngineDLL);
 		if (!hEngine)
 		{
@@ -124,7 +110,6 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 			MessageBox(NULL, msg, "Fatal Error", MB_ICONERROR);
 			ExitProcess(0);
 		}
-
 
 		CreateInterfaceFn engineCreateInterface = (CreateInterfaceFn)Sys_GetFactory(hEngine);
 		engineAPI = (IEngine*)engineCreateInterface(VENGINE_LAUNCHER_API_VERSION, NULL);
@@ -148,16 +133,16 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 
 		switch (iResult)
 		{
-		case ENGINE_RESULT_RESTART:
-		{
-			bContinue = true;
-			break;
-		}
-		case ENGINE_RESULT_UNSUPPORTEDVIDEO:
-		{
-			bContinue = MessageBox(NULL, "The specified video mode is not supported.\n", "Video mode change failure", MB_OKCANCEL | MB_ICONWARNING) != IDOK;
-			break;
-		}
+			case ENGINE_RESULT_RESTART:
+			{
+				bContinue = true;
+				break;
+			}
+			case ENGINE_RESULT_UNSUPPORTEDVIDEO:
+			{
+				bContinue = MessageBox(NULL, "The specified video mode is not supported.\n", "Video mode change failure", MB_OKCANCEL | MB_ICONWARNING) != IDOK;
+				break;
+			}
 		}
 
 		CommandLine()->RemoveParm("-sw");
