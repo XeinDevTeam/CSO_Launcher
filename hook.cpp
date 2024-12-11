@@ -33,8 +33,11 @@ DWORD g_dwFileSystemSize;
 #define DEFAULT_IP "127.0.0.1"
 #define DEFAULT_PORT "30002"
 
-#define SOCKETMANAGER_SIG_CSNZ23 "\xE8\x00\x00\x00\x00\xEB\x00\x33\xC0\xFF\x75\x00\x83\x7D"
-#define SOCKETMANAGER_MASK_CSNZ23 "x????x?xxxx?xx"
+
+#define SOCKETMANAGER_SIG_CSNZ23 "\xE8\x00\x00\x00\x00\xEB\x00\x33\xC0\xFF\x75\x00\xA3\x00"
+#define SOCKETMANAGER_MASK_CSNZ23 "x????x?xxxx?x?"
+
+
 
 #define SERVERCONNECT_SIG_CSNZ2019 "\xE8\x00\x00\x00\x00\x85\xC0\x75\x00\x46"
 #define SERVERCONNECT_MASK_CSNZ2019 "x????xxx?x"
@@ -66,6 +69,13 @@ DWORD g_dwFileSystemSize;
 #define BOT_MANAGER_PTR_SIG_CSNZ "\xA3\x00\x00\x00\x00\xC7\x45\x00\x00\x00\x00\x00\xFF\x15\x00\x00\x00\x00\x83\xC4"
 #define BOT_MANAGER_PTR_MASK_CSNZ "x????xx?????xx????xx"
 
+/*					//tw
+#define CSOMAINPANEL_PTR_SIG_CSNZ "\x8B\x0D\x00\x00\x00\x00\x6A\x01\x8B\x01\xFF\x90\x00\x00\x00\x00\x8B\x0D\x00\x00\x00\x00\x6A\x01\x8B\x01\xFF\x90\x00\x00\x00\x00\x8B\x0D\x00\x00\x00\x00\x6A\x01\x8B\x01\xFF\x90\x00\x00\x00\x00\x8B\x0D\x00\x00\x00\x00\x6A\x02\xE8\x00\x00\x00\x00\x8B\x03"
+#define CSOMAINPANEL_PTR_MASK_CSNZ "xx????xxxxxx????xx????xxxxxx????xx????xxxxxx????xx????xxx????xx"
+*/
+
+
+
 #define CSOMAINPANEL_PTR_SIG_CSNZ "\x8B\x0D\x00\x00\x00\x00\x6A\x01\x8B\x01\xFF\x90\x00\x00\x00\x00\x8B\x0D\x00\x00\x00\x00\x6A\x01\xE8\x00\x00\x00\x00\x8B\x03"
 #define CSOMAINPANEL_PTR_MASK_CSNZ "xx????xxxxxx????xx????xxx????xx"
 
@@ -74,6 +84,17 @@ DWORD g_dwFileSystemSize;
 
 #define NGCLIENT_INIT_SIG_CSNZ "\xE8\x00\x00\x00\x00\x84\xC0\x75\x00\xE8\x00\x00\x00\x00\x33\xC0"
 #define NGCLIENT_INIT_MASK_CSNZ "x????xxx?x????xx"
+
+/*					//CHN
+#define NGCLIENT_INIT_SIG_CSNZ "\xE8\x00\x00\x00\x00\x84\xC0\x75\x00\x6A\x00\x68\x90\xB9\xDA\x37"
+#define NGCLIENT_INIT_MASK_CSNZ "x????xxx?x?xxxxx"
+*/
+
+
+/*					//tw
+#define NGCLIENT_QUIT_SIG_CSNZ "\xE8\x00\x00\x00\x00\x33\xC0\x5F\x5E\x5B\x8B\x4D"
+#define NGCLIENT_QUIT_MASK_CSNZ "x????xxxxxxx"
+*/
 
 #define NGCLIENT_QUIT_SIG_CSNZ "\xE8\x00\x00\x00\x00\x33\xC0\xE9\x00\x00\x00\x00\xEB"
 #define NGCLIENT_QUIT_MASK_CSNZ "x????xxx????x"
@@ -90,16 +111,26 @@ DWORD g_dwFileSystemSize;
 #define LOADJSON_SIG_CSNZ "\x55\x8B\xEC\x8B\x0D\x00\x00\x00\x00\x53\x56\x8B\x75"
 #define LOADJSON_MASK_CSNZ "xxxxx????xxxx"
 
-#define LOGTOERRORLOG_SIG_CSNZ "\x53\x8B\xDC\x83\xEC\x00\x83\xE4\x00\x83\xC4\x00\x55\x8B\x6B\x00\x89\x6C\x24\x00\x8B\xEC\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x8B\x73\x00\x8D\x43"
-#define LOGTOERRORLOG_MASK_CSNZ "xxxxx?xx?xx?xxx?xxx?xxxx????x????xxxx?xxx?xx"
+#define LOGTOERRORLOG_SIG_CSNZ "\x53\x8B\xDC\x83\xEC\x00\x83\xE4\x00\x83\xC4\x00\x55\x8B\x6B\x00\x89\x6C\x24\x00\x8B\xEC\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x8B\x73\x00\x00\x00"
+#define LOGTOERRORLOG_MASK_CSNZ "xxxxx?xx?xx?xxx?xxx?xxxx????x????xxxx?xxx???"
+
+/*					//tw
+#define LOGTOERRORLOG_SIG_CSNZ "\x55\x8B\xEC\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x8B\x75\x00\x8D\x45\x00"
+#define LOGTOERRORLOG_MASK_CSNZ "xxxxx????x????xxxx?xxx?xx?"
+*/
 
 #define READPACKET_SIG_CSNZ "\xE8\x00\x00\x00\x00\x8B\xF0\x83\xFE\x00\x77"
 #define READPACKET_MASK_CSNZ "x????xxxx?x"
 
 #define GETSSLPROTOCOLNAME_SIG_CSNZ "\xE8\x00\x00\x00\x00\xB9\x00\x00\x00\x00\x8A\x10"
 #define GETSSLPROTOCOLNAME_MASK_CSNZ "x????x????xx"
+/*					//tw
+#define SOCKETCONSTRUCTOR_SIG_CSNZ "\xE8\x00\x00\x00\x00\xEB\x00\x33\xC0\xFF\x75\x00\xC7\x45"
+#define SOCKETCONSTRUCTOR_MASK_CSNZ "x????x?xxxx?xx"
+*/
 
-#define SOCKETCONSTRUCTOR_SIG_CSNZ "\xE8\x00\x00\x00\x00\xEB\x00\x33\xC0\x53\xFF\xB5"
+
+#define SOCKETCONSTRUCTOR_SIG_CSNZ "\xE8\x00\x00\x00\x00\xEB\x00\x33\xC0\x53\xC7\x45"
 #define SOCKETCONSTRUCTOR_MASK_CSNZ "x????x?xxxxx"
 
 #define EVP_CIPHER_CTX_NEW_SIG_CSNZ "\xE8\x00\x00\x00\x00\x8B\xF8\x89\xBE"
@@ -155,7 +186,7 @@ tLoginDlg_OnCommand g_pfnLoginDlg_OnCommand;
 typedef void(__thiscall* tParseCSV)(int* _this, unsigned char* buffer, int size);
 tParseCSV g_pfnParseCSV;
 
-typedef void*(*tEVP_CIPHER_CTX_new)();
+typedef void* (*tEVP_CIPHER_CTX_new)();
 tEVP_CIPHER_CTX_new g_pfnEVP_CIPHER_CTX_new;
 
 #pragma region Nexon NGClient/NXGSM
@@ -407,7 +438,7 @@ CreateHookClassType(bool, CreateStringTable, int, const char* filename)
 		case ZSRogueLiteAbility: return LoadCsv(ptr, filename, g_ZSRogueLiteAbility, sizeof(g_ZSRogueLiteAbility));
 		case ZSTransform_Skill: return LoadCsv(ptr, filename, g_ZSTransform_Skill, sizeof(g_ZSTransform_Skill));
 		case ZSTransform_Status: return LoadCsv(ptr, filename, g_ZSTransform_Status, sizeof(g_ZSTransform_Status));
-		case FireBombOption: return LoadCsv(ptr, filename, g_FireBombOption, sizeof(g_FireBombOption));
+		//case FireBombOption: return LoadCsv(ptr, filename, g_FireBombOption, sizeof(g_FireBombOption));
 		case HumanAbilityData: return LoadCsv(ptr, filename, g_HumanAbilityData, sizeof(g_HumanAbilityData));
 		case HumanAbilityProbData: return LoadCsv(ptr, filename, g_HumanAbilityProbData, sizeof(g_HumanAbilityProbData));
 		case SpecialZombieProb: return LoadCsv(ptr, filename, g_SpecialZombieProb, sizeof(g_SpecialZombieProb));
@@ -494,6 +525,8 @@ SetBuffer:
 
 CreateHook(__stdcall, int, LoadJson, std::string* filename, std::string* buffer)
 {
+	printf("%s\n", filename->c_str());
+
 	if (dediCsv.find(*filename) != dediCsv.end())
 	{
 		switch (dediCsv[*filename])
@@ -1058,7 +1091,7 @@ int __fastcall GameUI_RunFrame(void* _this)
 					bShowLoginDlg = true;
 					return g_pfnGameUI_RunFrame(_this);
 				}
-				
+
 				g_pfnPanel_FindChildByName = (tPanel_FindChildByName)(dwPanel_FindChildByNameRelAddr + 4 + *(DWORD*)dwPanel_FindChildByNameRelAddr);
 				if (!g_pfnPanel_FindChildByName)
 				{
@@ -1405,7 +1438,7 @@ void Hook(HMODULE hEngineModule, HMODULE hFileSystemModule)
 
 	DWORD find = NULL;
 	void* dummy = NULL;
-	
+
 	if (!g_bNoNGHook)
 	{
 		find = FindPattern(NGCLIENT_INIT_SIG_CSNZ, NGCLIENT_INIT_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
@@ -1471,7 +1504,7 @@ void Hook(HMODULE hEngineModule, HMODULE hFileSystemModule)
 		/*
 		{
 			DWORD pushStr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("resource/zombi/ZombieSkillTable_Dedi.csv"));
-			
+
 			// read instruction opcode to know we found valid address
 			int opcode = 0;
 			ReadMemory((void*)(pushStr + 0xF), (BYTE*)&opcode, 1);
@@ -1624,17 +1657,6 @@ void Hook(HMODULE hEngineModule, HMODULE hFileSystemModule)
 		MessageBox(NULL, "LauncherName_Patch == NULL!!!", "Error", MB_OK);
 	else
 		WriteMemory((void*)find, (BYTE*)"CSOLauncher.exe", strlen("CSOLauncher.exe") + 1);
-
-	// patch 100 fps limit
-	find = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, "%3i fps -- host(%3.0f) sv(%3.0f) cl(%3.0f) gfx(%3.0f) snd(%3.0f) ents(%d)\n", 2);
-	if (!find)
-		MessageBox(NULL, "100Fps_Patch == NULL!!!", "Error", MB_OK);
-	else
-	{
-		DWORD patchAddr = find - 0x4C4;
-		BYTE patch[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
-		WriteMemory((void*)patchAddr, (BYTE*)patch, sizeof(patch));
-	}
 
 	if (!g_bUseOriginalServer && !g_bUseSSL)
 	{
