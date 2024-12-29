@@ -33,9 +33,6 @@ DWORD g_dwFileSystemSize;
 #define DEFAULT_IP "127.0.0.1"
 #define DEFAULT_PORT "30002"
 
-#define PACKET_METADATA_PARSE_SIG_CSNZ "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x57\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x8B\xF9\x89\xBD\x00\x00\x00\x00\x8B\x45\x00\x33\xF6\x89\xB5\x00\x00\x00\x00\x89\x85\x00\x00\x00\x00\x8B\x45\x00\xC7\x85\x00\x00\x00\x00\x00\x00\x00\x00\x89\xB5\x00\x00\x00\x00\x89\x85\x00\x00\x00\x00\x6A\x00\x8D\x85\x00\x00\x00\x00\x89\x75\x00\x50\x8D\x8D\x00\x00\x00\x00\xE8\x00\x00\x00\x00\x0F\xB6\x95"
-#define PACKET_METADATA_PARSE_MASK_CSNZ "xxxx?x????xx????xxx????x????xxxx?xxxxx?xx????xxxx????xx?xxxx????xx????xx?xx????????xx????xx????x?xx????xx?xxx????x????xxx"
-
 #define PACKET_QUEST_PARSE_SIG_CSNZ "\x55\x8B\xEC\x6A\x00\x68\x00\x00\x00\x00\x64\xA1\x00\x00\x00\x00\x50\x83\xEC\x00\x53\x56\x57\xA1\x00\x00\x00\x00\x33\xC5\x50\x8D\x45\x00\x64\xA3\x00\x00\x00\x00\x8B\xF9\x8B\x45\x00\x89\x45\x00\x8B\x45\x00\xC7\x45\x00\x00\x00\x00\x00\xC7\x45\x00\x00\x00\x00\x00\x89\x45\x00\x6A\x00\x8D\x45\x00\xC7\x45\x00\x00\x00\x00\x00\x50\x8D\x4D\x00\xE8\x00\x00\x00\x00\x0F\xB6\x45\x00\x89\x47\x00\xE8\x00\x00\x00\x00\x8B\x47\x00\x48"
 #define PACKET_QUEST_PARSE_MASK_CSNZ "xxxx?x????xx????xxx?xxxx????xxxxx?xx????xxxx?xx?xx?xx?????xx?????xx?x?xx?xx?????xxx?x????xxx?xx?x????xx?x"
 
@@ -66,9 +63,6 @@ DWORD g_dwFileSystemSize;
 #define CALL_PANEL_FINDCHILDBYNAME_SIG_CSNZ "\xE8\x00\x00\x00\x00\x89\x47\xC8"
 #define CALL_PANEL_FINDCHILDBYNAME_MASK_CSNZ "x????xxx"
 
-#define HOLEPUNCH_SETSERVERINFO_SIG_CSNZ "\x55\x8B\xEC\xB8\x00\x00\x00\x00\x66\xA3"
-#define HOLEPUNCH_SETSERVERINFO_MASK_CSNZ "xxxx????xx"
-
 #define HOLEPUNCH_GETUSERSOCKETINFO_SIG_CSNZ "\x55\x8B\xEC\x83\xEC\x00\x57\x8B\x7D\x00\x85\xFF\x75\x00\x8B\x45"
 #define HOLEPUNCH_GETUSERSOCKETINFO_MASK_CSNZ "xxxxx?xxx?xxx?xx"
 
@@ -77,9 +71,6 @@ DWORD g_dwFileSystemSize;
 
 #define LOADJSON_SIG_CSNZ "\x55\x8B\xEC\x8B\x0D\x00\x00\x00\x00\x53\x56\x8B\x75"
 #define LOADJSON_MASK_CSNZ "xxxxx????xxxx"
-
-#define LOGTOERRORLOG_SIG_CSNZ "\x53\x8B\xDC\x83\xEC\x00\x83\xE4\x00\x83\xC4\x00\x55\x8B\x6B\x00\x89\x6C\x24\x00\x8B\xEC\x81\xEC\x00\x00\x00\x00\xA1\x00\x00\x00\x00\x33\xC5\x89\x45\x00\x56\x8B\x73\x00\x8D\x43"
-#define LOGTOERRORLOG_MASK_CSNZ "xxxxx?xx?xx?xxx?xxx?xxxx????x????xxxx?xxx?xx"
 
 #define READPACKET_SIG_CSNZ "\xE8\x00\x00\x00\x00\x8B\xF0\x83\xFE\x00\x77"
 #define READPACKET_MASK_CSNZ "x????xxxx?x"
@@ -149,11 +140,13 @@ tEVP_CIPHER_CTX_new g_pfnEVP_CIPHER_CTX_new;
 #pragma region Nexon NGClient/NXGSM
 char NGClient_Return1()
 {
+    printf("[NGClient] return 1\n");
     return 1;
 }
 
 void NGClient_Void()
 {
+    printf("[NGClient] void\n");
 }
 
 // logger shit
@@ -169,6 +162,22 @@ void NXGSM_WriteStageLogA(int a1, char* a2)
 void NXGSM_WriteErrorLogA(int a1, char* a2)
 {
 }
+
+
+CreateHook(__cdecl, void, NGClient_Frame1, double frame)
+{
+
+}
+
+CreateHook(__cdecl, void, NGClient_Frame2)
+{
+
+}
+
+CreateHook(__cdecl, void, NGClient_Frame3)
+{
+
+}
 #pragma endregion
 
 #pragma region Socket
@@ -182,20 +191,9 @@ CreateHook(__cdecl, char, InitSocketManager, char* szFileName, char a2, char a3)
 
 CreateHookClass(void*, NewSocketManager, bool ssl)
 {
-    printf(LogStr("[+] SocketManager"));
+    printf(LogStr("[+] SocketManager\n"));
     gSocketManager = ptr;
-    return g_pfnNewSocketManager(ptr, ssl);
-}
-#pragma endregion
-
-#pragma region Nexon Messenger
-CreateHookClass(char, AuthManager__Auth, const char* userName, const char* password, int a4)
-{
-    // find bIsAge18
-    printf(LogStr("[*] AuthManager::Auth(%s, %s)"), userName, password);
-
-    // after here connect to original server (as CHN)
-    return 1;
+    return g_pfnNewSocketManager(ptr, false);
 }
 #pragma endregion
 
@@ -208,6 +206,17 @@ CreateHookClass(int, ServerConnect, unsigned long ip, unsigned short port, bool 
 {
     return g_pfnServerConnect(ptr, inet_addr(g_pServerIP), htons(atoi(g_pServerPort)), validate);
 }
+
+#pragma region Nexon Messenger
+CreateHookClass(char, AuthManager__Auth, const char* userName, const char* password, int a4)
+{
+    // find bIsAge18
+    printf(LogStr("[*] AuthManager::Auth(%s, %s)\n"), userName, password);
+
+    // after here connect to original server (as CHN)
+    return g_pfnServerConnect(gSocketManager, inet_addr(g_pServerIP), htons(atoi(g_pServerPort)), 1);
+}
+#pragma endregion
 
 CreateHook(__cdecl, void, HolePunch_SetServerInfo, unsigned long ip, unsigned short port)
 {
@@ -226,6 +235,7 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
     return CallWindowProc(oWndProc, hWnd, uMsg, wParam, lParam);
 }
 
+#pragma region CSV Related
 enum dediCsvType {
     TDM_Spawn_Replacement,
     AllStar_Skill,
@@ -544,6 +554,7 @@ CreateHook(__stdcall, int, LoadJson, std::string* filename, std::string* buffer)
 
     return g_pfnLoadJson(filename, buffer);
 }
+#pragma endregion
 
 #pragma region Metadata Shit
 enum metaDataType
@@ -1041,7 +1052,8 @@ void __fastcall LoginDlg_OnCommand(void* _this, int r, const char* command)
 bool bShowLoginDlg = false;
 int __fastcall GameUI_RunFrame(void* _this)
 {
-    if (!bShowLoginDlg)
+    //if (!bShowLoginDlg)
+    if (false)
     {
         if (strlen(g_pLogin) != 0 || strlen(g_pPassword) != 0)
         {
@@ -1132,26 +1144,34 @@ int __fastcall GameUI_RunFrame(void* _this)
     return g_pfnGameUI_RunFrame(_this);
 }
 
+#pragma region Bot
+bool bInitBotManager = false;
+
 void CSO_Bot_Add()
 {
-    // get current botmgr ptr
-    DWORD dwBotManagerPtr = FindPattern(BOT_MANAGER_PTR_SIG_CSNZ, BOT_MANAGER_PTR_MASK_CSNZ, g_dwMpBase, g_dwMpBase + g_dwMpSize, 1);
-    if (!dwBotManagerPtr)
-    {
-        MessageBox(NULL, "dwBotManagerPtr == NULL!!!", "Error", MB_OK);
-        return;
+    if (!bInitBotManager) {
+        // get current botmgr ptr
+        DWORD dwBotManagerPtr = FindPattern(BOT_MANAGER_PTR_SIG_CSNZ, BOT_MANAGER_PTR_MASK_CSNZ, g_dwMpBase, g_dwMpBase + g_dwMpSize, 1);
+        if (!dwBotManagerPtr)
+        {
+            MessageBox(NULL, "dwBotManagerPtr == NULL!!!", "Error", MB_OK);
+            return;
+        }
+        g_pBotManager = **((CCSBotManager***)(dwBotManagerPtr));
+        bInitBotManager = true;
     }
-    g_pBotManager = **((CCSBotManager***)(dwBotManagerPtr));
 
-    int side = 0;
-    int argc = g_pEngine->Cmd_Argc();
-    if (argc > 0)
-    {
-        side = atoi(g_pEngine->Cmd_Argv(1));
+    if (g_pBotManager) {
+        int side = 0;
+        int argc = g_pEngine->Cmd_Argc();
+        if (argc > 0)
+            side = atoi(g_pEngine->Cmd_Argv(1));
+        g_pBotManager->Bot_Add(side);
     }
-    g_pBotManager->Bot_Add(side);
 }
+#pragma endregion
 
+#pragma region SSL Related
 CreateHookClass(const char*, GetSSLProtocolName)
 {
     return "None";
@@ -1166,6 +1186,7 @@ CreateHookClassType(void*, SocketConstructor, int, int a2, int a3, char a4)
 
     return g_pfnSocketConstructor(ptr, a2, a3, a4);
 }
+#pragma endregion
 
 CreateHookClass(int, ReadPacket, char* outBuf, int len, unsigned short* outLen, bool initialMsg)
 {
@@ -1268,9 +1289,14 @@ void CreateDebugConsole()
     setlocale(LC_ALL, "");
 }
 
+CreateHook(__cdecl, int, FileChecksum)
+{
+    return 0;
+}
+
 DWORD WINAPI HookThread(LPVOID lpThreadParameter)
 {
-    hWnd = FindWindow(NULL, "Counter-Strike Nexon: Studio");
+    hWnd = FindWindow(NULL, "Counter-Strike Online");
     oWndProc = (WNDPROC)SetWindowLongPtr(hWnd, GWLP_WNDPROC, (LONG_PTR)WndProc);
 
     if (!g_bUseOriginalServer)
@@ -1302,6 +1328,7 @@ DWORD WINAPI HookThread(LPVOID lpThreadParameter)
         }
         g_dwMpSize = GetModuleSize(GetModuleHandle("mp.dll"));
 
+        if (false)
         {
             DWORD pushStr = 0;
             DWORD patchAddr = 0;
@@ -1421,114 +1448,46 @@ void Hook(HMODULE hEngineModule, HMODULE hFileSystemModule)
         else
             InlineHook((void*)find, NGClient_Return1, dummy);
 
-        find = FindPattern("\x53\x56\x57\xEB\x00\x43\x56\x20\x20\x0C\x00\x00\x00\x00\x00\x00\x00\x43\x56\x20\x20\xFF\x15\x6C\x29\x9D\x02\x68\x44\x50\xD6\x03", "xxxx?x????????????????xxxxxxxxxx", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+        find = FindPattern("\x53\x56\x57\xEB\x00\x43\x56\x20\x20\x0C\x00\x00\x00\x00\x00\x00\x00\x43\x56\x20\x20\xFF\x15\x6C\x29\x9D\x02\x68\x44\x50\xD6\x03", "xxxx?????????????????xx????x", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
         if (!find)
             MessageBox(NULL, "NGClient_Quit == NULL!!!", "Error", MB_OK);
         else
             InlineHook((void*)find, NGClient_Void, dummy);
+
+        InlineHook((void*)(g_dwEngineBase + 0x69DFA0), Hook_NGClient_Frame1, (void*&)g_pfnNGClient_Frame1);
+        InlineHook((void*)(g_dwEngineBase + 0x75C570), Hook_NGClient_Frame2, (void*&)g_pfnNGClient_Frame2);
+        InlineHook((void*)(g_dwEngineBase + 0x75C680), Hook_NGClient_Frame3, (void*&)g_pfnNGClient_Frame3);
     }
 
     if (!g_bUseOriginalServer)
     {
-        find = FindPattern("\x55\x8B\xEC\x6A\xFF\x68\x73\x6D\x99\x02", "xxxxxxxxxx", g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-        if (!find)
-            MessageBox(NULL, "SocketManagerConstructor == NULL!!!", "Error", MB_OK);
-        else
-            InlineHook((void*)find, Hook_NewSocketManager, (void*&)g_pfnNewSocketManager);
+        // DeleteFileA("SocketError.log");
+        InlineHook((void*)(g_dwEngineBase + 0x922FD0), Hook_NewSocketManager, (void*&)g_pfnNewSocketManager);
 
-        find = FindPattern(SERVERCONNECT_SIG_CSNZ2019, SERVERCONNECT_MASK_CSNZ2019, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-        if (!find)
-            MessageBox(NULL, "ServerConnect == NULL!!!", "Error", MB_OK);
-        else
-            InlineHookFromCallOpcode((void*)find, Hook_ServerConnect, (void*&)g_pfnServerConnect, dummy);
+        // new socket()>>
+        InlineHook((void*)(g_dwEngineBase + 0x9237D0), Hook_ServerConnect, (void*&)g_pfnServerConnect);
 
-        find = FindPattern(HOLEPUNCH_SETSERVERINFO_SIG_CSNZ, HOLEPUNCH_SETSERVERINFO_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-        if (!find)
-            MessageBox(NULL, "HolePunch_SetServerInfo == NULL!!!", "Error", MB_OK);
-        else
-            InlineHook((void*)find, Hook_HolePunch_SetServerInfo, (void*&)g_pfnHolePunch_SetServerInfo);
+        InlineHook((void*)(g_dwEngineBase + 0x6A4B70), Hook_HolePunch_SetServerInfo, (void*&)g_pfnHolePunch_SetServerInfo);
 
-        find = FindPattern(HOLEPUNCH_GETUSERSOCKETINFO_SIG_CSNZ, HOLEPUNCH_GETUSERSOCKETINFO_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-        if (!find)
-            MessageBox(NULL, "HolePunch_GetUserSocketInfo == NULL!!!", "Error", MB_OK);
-        else
-            InlineHook((void*)find, Hook_HolePunch_GetUserSocketInfo, (void*&)g_pfnHolePunch_GetUserSocketInfo);
+        // AuthManager - Auth()\n
+        InlineHook((void*)(g_dwEngineBase + 0x6F35C0), Hook_AuthManager__Auth, (void*&)g_pfnAuthManager__Auth);
+        
+        // error TS%d,%d (GetLastError 0x%x)
+        InlineHook((void*)(g_dwEngineBase + 0x8514E0), Hook_FileChecksum, (void*&)g_pfnFileChecksum);
 
-        /*
+        // multiplayer uses
+        if (false)
         {
-            DWORD pushStr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("resource/zombi/ZombieSkillTable_Dedi.csv"));
-            
-            // read instruction opcode to know we found valid address
-            int opcode = 0;
-            ReadMemory((void*)(pushStr + 0xF), (BYTE*)&opcode, 1);
-
-            if (opcode == 0xE8 && pushStr && InlineHookFromCallOpcode((void*)(pushStr + 0xF), CreateStringTable, (void*&)g_pfnCreateStringTable, dummy))
-            {
-                DWORD parseCsvCallAddr = (DWORD)dummy + 0x71 + 1; // 0x71
-                g_pfnParseCSV = (tParseCSV)(parseCsvCallAddr + 4 + *(DWORD*)parseCsvCallAddr);
-
-                // patch LoadZombieSkill function to load csv bypassing filesystem
-                DWORD patchAddr = pushStr - 0x1A;
-                BYTE patch[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
-                WriteMemory((void*)patchAddr, (BYTE*)patch, sizeof(patch));
-            }
-            else
-            {
-                MessageBox(NULL, "Failed to patch zombie skill table", "Error", MB_OK);
-            }
-        }
-        */
-
-        {
-            DWORD pushStr = 0;
-            DWORD patchAddr = 0;
-
-            // NOP dedi check on Zombie Skills
-            pushStr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("resource/zombi/ZombieSkillProperty_Dedi/ZombieSkillProperty_Crazy.csv"));
-            if (!pushStr)
-                MessageBox(NULL, "ZombieSkillProperty_Patch == NULL!!!", "Error", MB_OK);
-            else
-            {
-                patchAddr = pushStr - 0x2D;
-                BYTE patch[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x53, 0x8B, 0xD9, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
-                WriteMemory((void*)patchAddr, (BYTE*)patch, sizeof(patch));
-            }
-
-            // NOP dedi check on Fire Bomb
-            pushStr = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("resource/zombi/FireBombOption_Dedi.csv"));
-            if (!pushStr)
-                MessageBox(NULL, "FireBombOption_Patch == NULL!!!", "Error", MB_OK);
-            else
-            {
-                patchAddr = pushStr - 0x14;
-                BYTE patch2[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x8B, 0xF0, 0x89, 0x75, 0xD8, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
-                WriteMemory((void*)patchAddr, (BYTE*)patch2, sizeof(patch2));
-            }
-
-            find = FindPattern(CREATESTRINGTABLE_SIG_CSNZ, CREATESTRINGTABLE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
+            find = FindPattern(HOLEPUNCH_GETUSERSOCKETINFO_SIG_CSNZ, HOLEPUNCH_GETUSERSOCKETINFO_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
             if (!find)
-                MessageBox(NULL, "CreateStringTable == NULL!!!", "Error", MB_OK);
+                MessageBox(NULL, "HolePunch_GetUserSocketInfo == NULL!!!", "Error", MB_OK);
             else
-            {
-                InlineHook((void*)find, Hook_CreateStringTable, (void*&)g_pfnCreateStringTable);
-
-                DWORD parseCsvCallAddr = (DWORD)find + 0x71 + 1; // 0x71
-                g_pfnParseCSV = (tParseCSV)(parseCsvCallAddr + 4 + *(DWORD*)parseCsvCallAddr);
-            }
-
-            find = FindPattern(LOADJSON_SIG_CSNZ, LOADJSON_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-            if (!find)
-                MessageBox(NULL, "LoadJson == NULL!!!", "Error", MB_OK);
-            else
-                InlineHook((void*)find, Hook_LoadJson, (void*&)g_pfnLoadJson);
+                InlineHook((void*)find, Hook_HolePunch_GetUserSocketInfo, (void*&)g_pfnHolePunch_GetUserSocketInfo);
         }
     }
 
-    find = FindPattern(LOGTOERRORLOG_SIG_CSNZ, LOGTOERRORLOG_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-    if (!find)
-        MessageBox(NULL, "LogToErrorLog == NULL!!!", "Error", MB_OK);
-    else
-        InlineHook((void*)find, Hook_LogToErrorLog, (void*&)g_pfnLogToErrorLog);
+    // CSONMWrapper - AuthUser()
+    //InlineHook((void*)(g_dwEngineBase + 0x91F120), Hook_LogToErrorLog, (void*&)g_pfnLogToErrorLog);
 
     g_pEngine = (cl_enginefunc_t*)(PVOID) * (PDWORD)(FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, (PCHAR)("ScreenFade")) + 0x0D);
     if (!g_pEngine)
@@ -1537,92 +1496,8 @@ void Hook(HMODULE hEngineModule, HMODULE hFileSystemModule)
         // hook Pbuf_AddText to allow any cvar or cmd input from console
         g_pEngine->Pbuf_AddText = Pbuf_AddText;
 
-    if (g_bDumpMetadata || g_bWriteMetadata || g_bIgnoreMetadata)
-    {
-        find = FindPattern(PACKET_METADATA_PARSE_SIG_CSNZ, PACKET_METADATA_PARSE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-        if (!find)
-            MessageBox(NULL, "Packet_Metadata_Parse == NULL!!!", "Error", MB_OK);
-        else
-        {
-            InlineHook((void*)find, Hook_Packet_Metadata_Parse, (void*&)g_pfnPacket_Metadata_Parse);
-            if (g_pEngine)
-                g_pEngine->pfnAddCommand("metadata_requestall", Metadata_RequestAll);
-        }
-    }
-
-    if (g_bDumpQuest)
-    {
-        find = FindPattern(PACKET_QUEST_PARSE_SIG_CSNZ, PACKET_QUEST_PARSE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-        if (!find)
-            MessageBox(NULL, "Packet_Quest_Parse == NULL!!!", "Error", MB_OK);
-        else
-            InlineHook((void*)find, Hook_Packet_Quest_Parse, (void*&)g_pfnPacket_Quest_Parse);
-    }
-
-    if (g_bDumpUMsg)
-    {
-        find = FindPattern(PACKET_UMSG_PARSE_SIG_CSNZ, PACKET_UMSG_PARSE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-        if (!find)
-            MessageBox(NULL, "Packet_UMsg_Parse == NULL!!!", "Error", MB_OK);
-        else
-            InlineHook((void*)find, Hook_Packet_UMsg_Parse, (void*&)g_pfnPacket_UMsg_Parse);
-    }
-
-    if (g_bDumpAlarm)
-    {
-        find = FindPattern(PACKET_ALARM_PARSE_SIG_CSNZ, PACKET_ALARM_PARSE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-        if (!find)
-            MessageBox(NULL, "Packet_Alarm_Parse == NULL!!!", "Error", MB_OK);
-        else
-            InlineHook((void*)find, Hook_Packet_Alarm_Parse, (void*&)g_pfnPacket_Alarm_Parse);
-    }
-
-    if (g_bDumpItem)
-    {
-        find = FindPattern(PACKET_ITEM_PARSE_SIG_CSNZ, PACKET_ITEM_PARSE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-        if (!find)
-            MessageBox(NULL, "Packet_Item_Parse == NULL!!!", "Error", MB_OK);
-        else
-            InlineHook((void*)find, Hook_Packet_Item_Parse, (void*&)g_pfnPacket_Item_Parse);
-    }
-
-    if (g_bDumpCrypt)
-    {
-        find = FindPattern(PACKET_CRYPT_PARSE_SIG_CSNZ, PACKET_CRYPT_PARSE_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-        if (!find)
-            MessageBox(NULL, "Packet_Crypt_Parse == NULL!!!", "Error", MB_OK);
-        else
-            InlineHook((void*)find, Hook_Packet_Crypt_Parse, (void*&)g_pfnPacket_Crypt_Parse);
-    }
-
-    if (g_bDumpAll)
-    {
-        find = FindPattern(READPACKET_SIG_CSNZ, READPACKET_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);
-        if (!find)
-            MessageBox(NULL, "ReadPacket == NULL!!!", "Error", MB_OK);
-        else
-            InlineHookFromCallOpcode((void*)find, Hook_ReadPacket, (void*&)g_pfnReadPacket, dummy);
-    }
-
-    // patch launcher name in hw.dll to fix annoying message box (length of launcher filename must be < original name)
-    find = FindPattern("cstrike-online.exe", strlen("cstrike-online.exe"), g_dwEngineBase, g_dwEngineBase + g_dwEngineSize);
-    if (!find)
-        MessageBox(NULL, "LauncherName_Patch == NULL!!!", "Error", MB_OK);
-    else
-        WriteMemory((void*)find, (BYTE*)"CSOLauncher.exe", strlen("CSOLauncher.exe") + 1);
-
-    // patch 100 fps limit
-    find = FindPush(g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, "%3i fps -- host(%3.0f) sv(%3.0f) cl(%3.0f) gfx(%3.0f) snd(%3.0f) ents(%d)\n", 2);
-    if (!find)
-        MessageBox(NULL, "100Fps_Patch == NULL!!!", "Error", MB_OK);
-    else
-    {
-        DWORD patchAddr = find - 0x4C4;
-        BYTE patch[] = { 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90, 0x90 };
-        WriteMemory((void*)patchAddr, (BYTE*)patch, sizeof(patch));
-    }
-
-    if (!g_bUseOriginalServer && !g_bUseSSL)
+    //if (!g_bUseOriginalServer && !g_bUseSSL)
+    if (false)
     {
         // hook GetSSLProtocolName to make Crypt work
         find = FindPattern(GETSSLPROTOCOLNAME_SIG_CSNZ, GETSSLPROTOCOLNAME_MASK_CSNZ, g_dwEngineBase, g_dwEngineBase + g_dwEngineSize, NULL);

@@ -74,8 +74,8 @@ int CALLBACK WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLi
 	CommandLine()->RemoveParm("-game");
 	CommandLine()->AppendParm("-game", "cstrike");
 
-	if (CommandLine()->CheckParm("-lang") == NULL)
-		CommandLine()->AppendParm("-lang", "na_");
+	CommandLine()->RemoveParm("-lang");
+	CommandLine()->AppendParm("-lang", "korean");
 
 	while (1)
 	{
